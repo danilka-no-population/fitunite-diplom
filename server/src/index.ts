@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import pool from './config/db';
 import authRoutes from './routes/authRoutes';
+import workoutRoutes from './routes/workoutRoutes';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/workouts', workoutRoutes);
 app.get('/', (req, res) => {
     res.send('FitUnite API is running...');
 });
