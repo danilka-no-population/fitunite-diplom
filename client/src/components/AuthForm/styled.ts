@@ -29,3 +29,21 @@ export const Button = styled.button`
         background-color: #0056b3;
     }
 `;
+
+export const ErrorMessage = styled.p`
+    color: red;
+    font-size: 14px;
+    margin: 0;
+`;
+
+export const RadioGroup = styled.div`
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+`;
+
+export const RadioLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+`;

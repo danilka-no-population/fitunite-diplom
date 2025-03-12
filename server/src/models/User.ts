@@ -35,6 +35,14 @@ class UserModel {
         return result.rows[0] || null;
     }
 
+    static async findByEmailOrUsername(emailOrUsername: string): Promise<User | null> {
+        const result = await pool.query(
+            'SELECT * FROM Users WHERE email = $1 OR username = $1',
+            [emailOrUsername]
+        );
+        return result.rows[0] || null;
+    }
+
     static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
         return await bcrypt.compare(password, hashedPassword);
     }
