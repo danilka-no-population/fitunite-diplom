@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
-    "dev": "ts-node src/index.ts"
+    "dev": "nodemon src/index.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -24,6 +24,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.10",
     "@types/pg": "^8.11.11",
+    "nodemon": "^3.1.9",
     "typescript": "^5.8.2"
   }
 }
