@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import UserModel from '../models/User';
+import UserModel, { User } from '../models/User';
 import pool from '../config/db';
 
 class AuthController {

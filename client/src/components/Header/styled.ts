@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import styled from "styled-components";
 
 export const Nav = styled.nav`
-    background-color: #007bff;
+    background-color:rgb(12, 179, 0);
     padding: 10px 20px;
     display: flex;
     justify-content: space-between;
@@ -10,13 +10,18 @@ export const Nav = styled.nav`
 `;
 
 export const NavLink = styled(Link)`
-    color: #fff;
+    color: #ffffff;
     text-decoration: none;
-    margin: 0 10px;
+    margin: 10px 10px;
     font-size: 16px;
+    padding: 4px;
 
     &:hover {
-        text-decoration: underline;
+        font-weight: bold;
+        border: 1px solid white;
+        border-radius: 5px;
+        background-color: white;
+        color: #000000;
     }
 `;
 

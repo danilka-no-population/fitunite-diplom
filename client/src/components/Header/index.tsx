@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Nav } from './styled';
-import { NavLink } from 'react-router-dom';
+import { Button, Nav, NavLink } from './styled';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
@@ -19,6 +18,7 @@ const Header: React.FC = () => {
                 {isAuthenticated && <NavLink to="/workouts">Workouts</NavLink>}
                 {isAuthenticated && <NavLink to="/meals">Meals</NavLink>}
                 {isAuthenticated && <NavLink to="/progress">Progress</NavLink>}
+                {isAuthenticated && <NavLink to="/profile">Profile</NavLink>}
             </div>
             <div>
                 {isAuthenticated ? (

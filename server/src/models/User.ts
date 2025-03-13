@@ -2,7 +2,7 @@ import pool from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-interface User {
+export interface User {
     id?: number;
     username: string;
     email: string;
@@ -50,6 +50,22 @@ class UserModel {
     static generateToken(payload: UserPayload): string {
         return jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '1h' });
     }
+
+    static async findById(id: number): Promise<User | null> {
+        const result = await pool.query('SELECT * FROM Users WHERE id = $1', [id]);
+        return result.rows[0] || null;
+    }
+    static async update(id: number, data: Partial<User>): Promise<User> {
+        //@ts-ignore
+        const { fullname, avatar, phone_number, trainer_id, specialization } = data;
+        
+        const result = await pool.query(
+            'UPDATE Users SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 WHERE id = $6 RETURNING *',
+            [fullname, avatar, phone_number, trainer_id, specialization, id]
+        );
+        
+        return result.rows[0];
+        }
 }
 
 export default UserModel;
