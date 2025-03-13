@@ -9,6 +9,6 @@ router.use(authMiddleware);
 router.post('/', WorkoutController.createWorkout);
 router.post('/exercises', WorkoutController.addExercise);
 router.get('/', WorkoutController.getWorkouts);
-router.get('/:workout_id/exercises', WorkoutController.getExercises);
+router.get('/:workout_id/exercises', WorkoutController.getWorkoutExercises);
 
 export default router;
