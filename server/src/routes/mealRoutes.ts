@@ -9,6 +9,6 @@ router.use(authMiddleware);
 router.post('/', MealController.createMeal);
 router.post('/products', MealController.addProduct);
 router.get('/', MealController.getMeals);
-router.get('/:meal_id/products', MealController.getProducts);
+router.get('/:meal_id/products', MealController.getMealProducts);
 
 export default router;
