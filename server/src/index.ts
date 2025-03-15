@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import pool from './config/db';
+import path from 'path';
 import authRoutes from './routes/authRoutes';
 import workoutRoutes from './routes/workoutRoutes';
 import mealRoutes from './routes/mealRoutes';
@@ -33,6 +34,11 @@ app.use('/api/programs', programRoutes);
 app.use('/api/programs/likes', programLikeRoutes);
 app.use('/api/programs/comments', programCommentRoutes);
 app.use('/api/favorites', favoriteRoutes);
+
+
+// Добавляем статическую отдачу файлов из папки uploads
+const uploadsPath = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsPath));
 
 app.get('/', (req, res) => {
     res.send('FitUnite API is running...');

@@ -65,7 +65,35 @@ class UserModel {
         );
         
         return result.rows[0];
-        }
+    }
+
+    static async updateProfile(id: number, data: Partial<User>): Promise<User> {
+        //@ts-ignore
+        const { fullname, avatar, phone_number, trainer_id, specialization } = data;
+      
+        const result = await pool.query(
+          `UPDATE Users 
+           SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 
+           WHERE id = $6 
+           RETURNING *`,
+          [fullname, avatar, phone_number, trainer_id || id, specialization, id]
+        );
+      
+        return result.rows[0];
+      }
+      
+      static async updateAvatar(id: number, avatar: string): Promise<User> {
+        const result = await pool.query(
+          'UPDATE Users SET avatar = $1 WHERE id = $2 RETURNING *',
+          [avatar, id]
+        );
+        return result.rows[0];
+      }
+
+      static async getTrainers(): Promise<User[]> {
+        const result = await pool.query('SELECT * FROM Users WHERE role = $1', ['trainer']);
+        return result.rows;
+      }
 }
 
 export default UserModel;

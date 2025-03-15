@@ -47,9 +47,10 @@ const fetchFavorites = async () => {
       <h1>Favorites</h1>
       {favorites.map((favorite) => (
         <Link to={`/programs/${favorite.program_id}`} key={favorite.id}>
-          <ProgramCard>
+          <ProgramCard style={{display: 'flex', flexDirection: 'column', width: '500px', marginTop: '15px'}}>
             <h3>{favorite.name}</h3>
-            <p>{favorite.description}</p>
+            {/* <p>{favorite.description}</p> */}
+            <p>{favorite.description.length > 60 ? `${favorite.description.substring(0, 60)}...` : favorite.description}</p>
           </ProgramCard>
         </Link>
       ))}
