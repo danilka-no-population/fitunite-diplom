@@ -61,20 +61,21 @@ const ProgressCharts: React.FC = () => {
         return data.filter(item => new Date(item.date) >= startDate);
     };
 
-    // Функция для группировки данных по дням и суммирования value
-    const groupAndSumData = (data: any[]) => {
-        const groupedData: Record<string, number> = {}; // { '2024-03-15': 150, '2024-03-16': 200 }
+    // Функция для группировки данных: сумма для обычных упражнений, среднее для бега
+    const groupAndProcessData = (data: any[], isRunning: boolean) => {
+        const groupedData: Record<string, { sum: number, count: number }> = {}; 
 
         data.forEach(({ date, value }) => {
             if (!groupedData[date]) {
-                groupedData[date] = 0;
+                groupedData[date] = { sum: 0, count: 0 };
             }
-            groupedData[date] += value;
+            groupedData[date].sum += value;
+            groupedData[date].count += 1;
         });
 
-        return Object.entries(groupedData).map(([date, totalValue]) => ({
+        return Object.entries(groupedData).map(([date, { sum, count }]) => ({
             date: format(new Date(date), 'dd.MM'), // Форматируем дату
-            value: totalValue
+            value: isRunning ? (count > 1 ? (sum / count * 1.5).toFixed(4) : (sum / count).toFixed(4)) : sum // Среднее для бега, сумма для остальных
         }));
     };
 
@@ -86,7 +87,8 @@ const ProgressCharts: React.FC = () => {
     const filteredCategories: Record<string, any[]> = {};
     Object.entries(allCategories).forEach(([category, data]) => {
         const filteredData = filterDataByPeriod(data);
-        filteredCategories[category] = groupAndSumData(filteredData);
+        const isRunning = category.toLowerCase().includes('бег'); // Определяем, что это бег
+        filteredCategories[category] = groupAndProcessData(filteredData, isRunning);
     });
 
     return (
@@ -99,7 +101,7 @@ const ProgressCharts: React.FC = () => {
             </div>
 
             {/* Графики для веса и ИМТ */}
-            <h2>Прогресс по весу и ИМТ</h2>
+            <h2>Прогресс по массе тела</h2>
             {filteredMetrics.length > 0 ? (
                 <LineChart width={600} height={300} data={filteredMetrics}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -107,11 +109,13 @@ const ProgressCharts: React.FC = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="weight" stroke="#8884d8" />
+                    <Line type="monotone" dataKey="weight" stroke="#8884d8" name="Вес (кг)" />
                 </LineChart>
             ) : (
                 <p>Нет данных по весу и ИМТ за выбранный период.</p>
             )}
+
+            <h2>В качестве критериев прогресса отображаются значения интенсивности работы по определенным категориям, которые вычисляются по определенной формуле</h2>
 
             {/* Графики для каждой категории */}
             {Object.entries(filteredCategories).map(([category, data]) => (
@@ -124,7 +128,7 @@ const ProgressCharts: React.FC = () => {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="value" stroke="#82ca9d" />
+                            <Line type="monotone" dataKey="value" stroke={category.toLowerCase().includes('бег') ? "#ff7300" : "#82ca9d"} name={category.toLocaleLowerCase() === 'бег' ? "Коэфф. интенсивности бега" : "Коэфф. интенсивности выполнения"} />
                         </LineChart>
                     ) : (
                         <p>Вы не выполняли упражнения в категории {category} за выбранный период.</p>
