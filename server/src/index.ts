@@ -9,6 +9,7 @@ import progressRoutes from './routes/progressRoutes';
 import profileRoutes from './routes/profileRoutes';
 import foodItemRoutes from './routes/foodItemRoutes';
 import exerciseRoutes from './routes/exerciseRoutes';
+import programRoutes from './routes/programRoutes';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/food-items', foodItemRoutes);
 app.use('/api/exercises', exerciseRoutes);
+app.use('/api/programs', programRoutes);
 
 app.get('/', (req, res) => {
     res.send('FitUnite API is running...');

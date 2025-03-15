@@ -8,7 +8,11 @@ import Workouts from './pages/Workouts';
 import Meals from './pages/Meals';
 import Progress from './pages/Progress';
 import ProtectedRoute from './components/ProtectedRoute';
-import ProfilePage from './pages/ProfilePage';  
+import ProfilePage from './pages/ProfilePage';
+import Programs from './pages/Programs';
+import ProgramDetail from './pages/ProgramDetails';
+import CreateProgram from './pages/CreateProgram';
+import TrainerRoute from './components/TrainerRoute';
 
 const App: React.FC = () => {
   return (
@@ -23,6 +27,11 @@ const App: React.FC = () => {
           <Route path="/meals" element={<Meals />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/programs" element={<Programs />} />
+          <Route path="/programs/:id" element={<ProgramDetail />} />
+          <Route element={<TrainerRoute />}>
+            <Route path="/create-program" element={<CreateProgram />} />
+          </Route>
         </Route>
       </Routes>
     </Router>

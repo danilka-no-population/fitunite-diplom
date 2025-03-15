@@ -19,6 +19,7 @@ const Header: React.FC = () => {
                 {isAuthenticated && <NavLink to="/meals">Meals</NavLink>}
                 {isAuthenticated && <NavLink to="/progress">Progress</NavLink>}
                 {isAuthenticated && <NavLink to="/profile">Profile</NavLink>}
+                <NavLink to="/programs">Programs</NavLink>
             </div>
             <div>
                 {isAuthenticated ? (
