@@ -8,5 +8,7 @@ const router = express.Router();
 router.use(authMiddleware);
 router.post('/', ProgressController.addMetric);
 router.get('/', ProgressController.getMetrics);
+router.get('/metrics', ProgressController.getUserMetrics);
+router.get('/categories', ProgressController.getCategoryProgress);
 
 export default router;
