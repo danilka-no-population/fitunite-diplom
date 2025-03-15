@@ -13,6 +13,7 @@ import Programs from './pages/Programs';
 import ProgramDetail from './pages/ProgramDetails';
 import CreateProgram from './pages/CreateProgram';
 import TrainerRoute from './components/TrainerRoute';
+import Favorites from './pages/Favorites';
 
 const App: React.FC = () => {
   return (
@@ -29,6 +30,7 @@ const App: React.FC = () => {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/programs" element={<Programs />} />
           <Route path="/programs/:id" element={<ProgramDetail />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route element={<TrainerRoute />}>
             <Route path="/create-program" element={<CreateProgram />} />
           </Route>
