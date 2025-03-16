@@ -30,6 +30,7 @@ const Header: React.FC = () => {
                 {isAuthenticated && <NavLink to="/profile">Profile</NavLink>}
                 {isAuthenticated && <NavLink to="/favorites">Favorites</NavLink>}
                 {isAuthenticated && <NavLink to="/programs">Programs</NavLink>}
+                {isAuthenticated && role === 'trainer' && <NavLink to="/my-clients">My Clients</NavLink>}
             </div>
             <div>
                 {isAuthenticated ? (

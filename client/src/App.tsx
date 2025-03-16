@@ -15,6 +15,8 @@ import CreateProgram from './pages/CreateProgram';
 import TrainerRoute from './components/TrainerRoute';
 import Favorites from './pages/Favorites';
 import ClientRoute from './components/ClientRoute';
+import ClientsList from './components/ClientsList';
+import ClientProfile from './pages/ClientProfile';
 
 const App: React.FC = () => {
   return (
@@ -36,6 +38,8 @@ const App: React.FC = () => {
           <Route path="/favorites" element={<Favorites />} />
           <Route element={<TrainerRoute />}>
             <Route path="/create-program" element={<CreateProgram />} />
+            <Route path="/my-clients" element={<ClientsList />} />
+            <Route path="/profile/:id" element={<ClientProfile />} />
           </Route>
         </Route>
       </Routes>

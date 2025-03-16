@@ -31,5 +31,17 @@ router.post('/avatar', upload.single('avatar'), ProfileController.uploadAvatar);
 router.post('/metrics', ProfileController.addMetrics);
 router.get('/metrics', ProfileController.getMetrics);
 router.get('/trainers', ProfileController.getTrainers);
+//@ts-ignore
+router.get('/my-clients', authMiddleware, ProfileController.getMyClients);
+//@ts-ignore
+router.get('/search-clients', authMiddleware, ProfileController.searchClients);
+//@ts-ignore
+router.post('/add-client', authMiddleware, ProfileController.addClient);
+//@ts-ignore
+router.get('/all-clients', authMiddleware, ProfileController.getAllClients);
+//@ts-ignore
+router.post('/remove-client', authMiddleware, ProfileController.removeClient);
+//@ts-ignore
+router.get('/:id', authMiddleware, ProfileController.getClientProfile);
 
 export default router;

@@ -94,6 +94,67 @@ class UserModel {
         const result = await pool.query('SELECT * FROM Users WHERE role = $1', ['trainer']);
         return result.rows;
       }
+
+
+    //   static async getClientsByTrainerId(trainerId: number): Promise<User[]> {
+    //     const result = await pool.query(
+    //       'SELECT * FROM Users WHERE trainer_id = $1',
+    //       [trainerId]
+    //     );
+    //     return result.rows;
+    //   }
+
+    static async getClientsByTrainerId(trainerId: number): Promise<User[]> {
+        const result = await pool.query(
+          `SELECT * FROM Users 
+           WHERE trainer_id = $1 
+             AND id != $1`,
+          [trainerId]
+        );
+        return result.rows;
+      }
+    
+    //   static async searchClients(query: string, trainerId: number): Promise<User[]> {
+    //     const result = await pool.query(
+    //       `SELECT * FROM Users 
+    //        WHERE (username ILIKE $1 OR fullname ILIKE $1) 
+    //        AND role = 'client' 
+    //        AND (trainer_id = $2 OR trainer_id IS NULL)`,
+    //       [`%${query}%`, trainerId]
+    //     );
+    //     return result.rows;
+    //   }
+
+    static async searchClients(query: string): Promise<User[]> {
+        const result = await pool.query(
+          `SELECT * FROM Users 
+           WHERE (username ILIKE $1 OR fullname ILIKE $1) 
+           AND role = 'client'`,
+          [`%${query}%`]
+        );
+        return result.rows;
+      }
+
+      static async addClient(trainerId: number, clientId: number): Promise<void> {
+        await pool.query(
+          'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+          [trainerId, clientId]
+        );
+      }
+
+      static async getAllClients(): Promise<User[]> {
+        const result = await pool.query(
+          "SELECT * FROM Users WHERE role = 'client'"
+        );
+        return result.rows;
+      }
+    
+      static async removeClient(trainerId: number, clientId: number): Promise<void> {
+        await pool.query(
+          'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
+          [clientId, trainerId]
+        );
+      }
 }
 
 export default UserModel;
