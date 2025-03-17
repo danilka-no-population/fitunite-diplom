@@ -211,7 +211,6 @@ const ClientsList: React.FC = () => {
   
 
   const filteredClients = clients.filter(client =>
-    client.fullname.toLowerCase().includes(myClientsSearch.toLowerCase()) ||
     client.username.toLowerCase().includes(myClientsSearch.toLowerCase())
   );
   
@@ -249,7 +248,7 @@ const ClientsList: React.FC = () => {
             <Link to={`/profile/${client.id}`} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <Avatar src={client.avatar || 'http://localhost:5000/uploads/default.png'} alt="Avatar" />
             <ClientInfo>
-                <ClientName>{client.fullname || 'No full name'}</ClientName>
+                <ClientName>{client.fullname || client.username}</ClientName>
                 <ClientUsername>@{client.username}</ClientUsername>
             </ClientInfo>
             </Link>

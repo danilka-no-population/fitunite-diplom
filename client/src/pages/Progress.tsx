@@ -6,7 +6,7 @@ const Container = styled.div`
     padding: 20px;
 `;
 
-const Progress: React.FC = () => {
+const Progress: React.FC<{ userId?: number }> = ({ userId }) => {
     return (
         <Container>
             <Container>
@@ -15,7 +15,7 @@ const Progress: React.FC = () => {
             <Container>
                 <p>Here you can track your progress over time.</p>
             </Container>
-            <ProgressCharts/>
+            <ProgressCharts userId={userId}/>
         </Container>
     );
 };

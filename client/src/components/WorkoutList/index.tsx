@@ -22,13 +22,14 @@ const ExerciseCard = styled.div`
   border-radius: 5px;
 `;
 
-const WorkoutList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
+const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refresh, clientId }) => {
   const [workouts, setWorkouts] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchWorkouts = async () => {
       try {
-        const response = await api.get('/workouts');
+        const endpoint = clientId ? `/workouts/client/${clientId}` : '/workouts';
+        const response = await api.get(endpoint);
         const workoutsWithExercises = await Promise.all(
           response.data.map(async (workout: any) => {
             const exercisesResponse = await api.get(`/workouts/${workout.id}/exercises`);
@@ -40,13 +41,13 @@ const WorkoutList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
         console.error(error);
       }
     };
-  
+
     fetchWorkouts();
-  }, [refresh]);
+  }, [refresh, clientId]);
 
   return (
     <Container>
-      <h1>My Workouts</h1>
+      <h1>{clientId ? "Client's Workouts" : 'My Workouts'}</h1>
       {workouts.map((workout) => (
         <WorkoutCard key={workout.id}>
           <h3>{new Date(workout.date).toLocaleDateString()}</h3>
@@ -61,7 +62,6 @@ const WorkoutList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
                 <>
                   <p>Duration: {exercise.duration} minutes</p>
                   <p>Distance: {exercise.distance} km</p>
-                  {/* <p>Average Speed: {(exercise.distance / (exercise.duration / 60)).toFixed(2)} km/h</p> */}
                   <p>Average Speed: {Number(exercise.distance) / (Number(exercise.duration) / 60)} km/h</p>
                 </>
               ) : (

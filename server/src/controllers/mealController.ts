@@ -66,6 +66,18 @@ class MealController {
       res.status(500).json({ message: 'Server error' });
     }
   }
+
+  static async getClientMeals(req: Request, res: Response) {
+    const { user_id } = req.params;
+  
+    try {
+      const meals = await MealModel.findByUserId(Number(user_id));
+      res.status(200).json(meals);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
 }
 
 export default MealController;

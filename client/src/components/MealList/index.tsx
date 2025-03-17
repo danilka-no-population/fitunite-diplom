@@ -27,13 +27,14 @@ const NutritionInfo = styled.div`
   font-weight: bold;
 `;
 
-const MealList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
+const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, userId }) => {
   const [meals, setMeals] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await api.get('/meals');
+        const endpoint = userId ? `/meals/client/${userId}` : '/meals';
+        const response = await api.get(endpoint);
         const mealsWithProducts = await Promise.all(
           response.data.map(async (meal: any) => {
             const productsResponse = await api.get(`/meals/${meal.id}/products`);
@@ -47,7 +48,7 @@ const MealList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
     };
 
     fetchMeals();
-  }, [refresh]);
+  }, [refresh, userId]);
 
   const calculateNutrition = (products: any[]) => {
     let totalCalories = 0;
@@ -87,7 +88,7 @@ const MealList: React.FC<{ refresh: boolean }> = ({ refresh }) => {
 
   return (
     <Container>
-      <h1>My Meals</h1>
+      <h1>{userId ? "Client's Meals" : 'My Meals'}</h1>
       {meals.map((meal) => {
         const { totalCalories, totalProteins, totalFats, totalCarbs } = calculateNutrition(meal.products);
         const groupedProducts = groupProductsByMealType(meal.products);

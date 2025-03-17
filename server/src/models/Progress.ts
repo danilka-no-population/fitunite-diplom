@@ -55,6 +55,14 @@ class ProgressModel {
             );
             return result.rows;
         }
+
+            // Получение прогресса клиента (метрики + упражнения)
+    static async getClientProgress(user_id: number) {
+        const metrics = await this.getUserMetrics(user_id);
+        const exercises = await this.getUserWorkoutExercises(user_id);
+
+        return { metrics, exercises };
+    }
 }
 
 export default ProgressModel;
