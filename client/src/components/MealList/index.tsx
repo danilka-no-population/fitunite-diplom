@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
+import AddMealComment from '../AddMealComment';
 
 const Container = styled.div`
   padding: 20px;
@@ -27,8 +28,17 @@ const NutritionInfo = styled.div`
   font-weight: bold;
 `;
 
+const CommentCard = styled.div`
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+`;
+
 const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, userId }) => {
   const [meals, setMeals] = useState<any[]>([]);
+  const [update, setUpdate] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchMeals = async () => {
@@ -38,7 +48,8 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
         const mealsWithProducts = await Promise.all(
           response.data.map(async (meal: any) => {
             const productsResponse = await api.get(`/meals/${meal.id}/products`);
-            return { ...meal, products: productsResponse.data };
+            const commentsResponse = await api.get(`/meal-comments/${meal.id}`);
+            return { ...meal, products: productsResponse.data, comments: commentsResponse.data };
           })
         );
         setMeals(mealsWithProducts);
@@ -48,7 +59,12 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
     };
 
     fetchMeals();
-  }, [refresh, userId]);
+  }, [refresh, userId, update]);
+
+  const handleCommentAdded = () => {
+    setMeals((prevMeals) => [...prevMeals]);
+    setUpdate(!update)
+  };
 
   const calculateNutrition = (products: any[]) => {
     let totalCalories = 0;
@@ -126,6 +142,23 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
               <p>Total Fats: {totalFats} g</p>
               <p>Total Carbs: {totalCarbs} g</p>
             </NutritionInfo>
+            <h4>Комментарии от тренера:</h4>
+            {meal.comments?.map((comment: any) => (
+              <CommentCard key={comment.id}>
+                <p>{comment.comment}</p>
+                <small>{new Date(comment.created_at).toLocaleString()}</small>
+              </CommentCard>
+            ))}
+            {meal.comments.length === 0 && ( !userId ? (
+              <CommentCard>
+                <p>Ваш тренер пока не оставлял комментариев!</p>
+              </CommentCard>
+            ) : (
+              <CommentCard>
+                <p>Вы пока не оставляли комментариев!</p>
+              </CommentCard>
+            ))}
+            {!userId ? <></> : <AddMealComment mealId={meal.id} onCommentAdded={handleCommentAdded} />}
           </MealCard>
         );
       })}

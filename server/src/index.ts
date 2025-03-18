@@ -14,6 +14,8 @@ import programRoutes from './routes/programRoutes';
 import programLikeRoutes from './routes/programLikeRoutes';
 import programCommentRoutes from './routes/programCommentRoutes';
 import favoriteRoutes from './routes/favoriteRoutes';
+import workoutCommentRoutes from './routes/workoutCommentRoutes';
+import mealCommentRoutes from './routes/mealCommentRoutes';
 
 dotenv.config();
 
@@ -34,6 +36,8 @@ app.use('/api/programs', programRoutes);
 app.use('/api/programs/likes', programLikeRoutes);
 app.use('/api/programs/comments', programCommentRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/workout-comments', workoutCommentRoutes);
+app.use('/api/meal-comments', mealCommentRoutes);
 
 
 // Добавляем статическую отдачу файлов из папки uploads
