@@ -3,65 +3,71 @@ import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
 
-const ProgressCharts: React.FC = () => {
-    const [allMetrics, setAllMetrics] = useState<any[]>([]);
-    const [allCategories, setAllCategories] = useState<Record<string, any[]>>({});
+const ProgressCharts: React.FC<{ userId?: number }> = ({ userId }) => {
+    const [metrics, setMetrics] = useState<any[]>([]);
+    const [categoryProgress, setCategoryProgress] = useState<Record<string, any[]>>({});
     const [period, setPeriod] = useState<'3days' | 'week' | 'month'>('month');
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-
-        fetch(`http://localhost:5000/api/progress/metrics?period=month`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        const fetchData = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('Токен авторизации отсутствует');
+                return;
             }
-        })
-        .then(res => res.json())
-        .then(data => {
-            const formattedData = data.map((item: { date: string }) => ({
-                ...item,
-                date: format(new Date(item.date), 'yyyy-MM-dd')
-            }));
-            setAllMetrics(formattedData);
-        })
-        .catch(error => console.error("Ошибка загрузки метрик:", error));
 
-        fetch(`http://localhost:5000/api/progress/categories?period=month`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            const formattedCategories: Record<string, any[]> = {};
-            Object.entries(data).forEach(([category, values]) => {
-                formattedCategories[category] = (values as any[]).map(item => ({
+            try {
+                // Определяем эндпоинт в зависимости от наличия userId
+                const endpoint = userId 
+                    ? `/api/progress/client/${userId}` 
+                    : '/api/progress/my-progress';
+
+                const response = await fetch(`http://localhost:5000${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                // Обработка метрик
+                const formattedMetrics = data.metrics.map((item: { date: string }) => ({
                     ...item,
-                    date: format(new Date(item.date), 'yyyy-MM-dd'),
-                    value: item.volume || item.speed
+                    date: format(new Date(item.date), 'yyyy-MM-dd')
                 }));
-            });
-            setAllCategories(formattedCategories);
-        })
-        .catch(error => console.error("Ошибка загрузки категорий:", error));
-    }, []);
+                setMetrics(formattedMetrics);
+
+                // Обработка категорий
+                const formattedCategories: Record<string, any[]> = {};
+                Object.entries(data.categoryProgress).forEach(([category, values]) => {
+                    formattedCategories[category] = (values as any[]).map(item => ({
+                        ...item,
+                        date: format(new Date(item.date), 'yyyy-MM-dd'),
+                        value: item.volume || item.speed
+                    }));
+                });
+                setCategoryProgress(formattedCategories);
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            }
+        };
+
+        fetchData();
+    }, [userId, period]);
 
     // Фильтрация данных по выбранному периоду
     const filterDataByPeriod = (data: any[]) => {
         const today = new Date();
-        // eslint-disable-next-line prefer-const
-        let startDate = period === '3days' ? subDays(today, 3) :
+        const startDate = period === '3days' ? subDays(today, 3) :
                         period === 'week' ? subDays(today, 7) :
                         subDays(today, 30);
 
         return data.filter(item => new Date(item.date) >= startDate);
     };
 
-    // Функция для группировки данных: сумма для обычных упражнений, среднее для бега
+    // Группировка данных
     const groupAndProcessData = (data: any[], isRunning: boolean) => {
         const groupedData: Record<string, { sum: number, count: number }> = {}; 
 
@@ -74,20 +80,20 @@ const ProgressCharts: React.FC = () => {
         });
 
         return Object.entries(groupedData).map(([date, { sum, count }]) => ({
-            date: format(new Date(date), 'dd.MM'), // Форматируем дату
-            value: isRunning ? (count > 1 ? (sum / count * 1.5).toFixed(4) : (sum / count).toFixed(4)) : sum // Среднее для бега, сумма для остальных
+            date: format(new Date(date), 'dd.MM'),
+            value: isRunning ? (count > 1 ? (sum / count * 1.5).toFixed(4) : (sum / count).toFixed(4)) : sum
         }));
     };
 
-    const filteredMetrics = filterDataByPeriod(allMetrics).map(item => ({
+    const filteredMetrics = filterDataByPeriod(metrics).map(item => ({
         ...item,
         date: format(new Date(item.date), 'dd.MM')
     }));
 
     const filteredCategories: Record<string, any[]> = {};
-    Object.entries(allCategories).forEach(([category, data]) => {
+    Object.entries(categoryProgress).forEach(([category, data]) => {
         const filteredData = filterDataByPeriod(data);
-        const isRunning = category.toLowerCase().includes('бег'); // Определяем, что это бег
+        const isRunning = category.toLowerCase().includes('бег');
         filteredCategories[category] = groupAndProcessData(filteredData, isRunning);
     });
 
@@ -114,8 +120,6 @@ const ProgressCharts: React.FC = () => {
             ) : (
                 <p>Нет данных по весу и ИМТ за выбранный период.</p>
             )}
-
-            <h2>В качестве критериев прогресса отображаются значения интенсивности работы по определенным категориям, которые вычисляются по определенной формуле</h2>
 
             {/* Графики для каждой категории */}
             {Object.entries(filteredCategories).map(([category, data]) => (

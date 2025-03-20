@@ -71,6 +71,18 @@ class WorkoutController {
       res.status(500).json({ message: 'Server error' });
     }
   }
+
+  static async getClientWorkouts(req: Request, res: Response) {
+    const { client_id } = req.params;
+  
+    try {
+      const workouts = await WorkoutModel.findByClientId(Number(client_id));
+      res.status(200).json(workouts);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
 }
 
 export default WorkoutController;

@@ -99,6 +99,73 @@ class ProgressController {
                 res.status(500).json({ message: 'Ошибка сервера' });
             }
         }
+
+            // Получение прогресса клиента
+    static async getClientProgress(req: Request, res: Response) {
+        const { user_id } = req.params;
+
+        try {
+            const { metrics, exercises } = await ProgressModel.getClientProgress(Number(user_id));
+
+            // Обработка упражнений для категорий
+            const categoryProgress: Record<string, any[]> = {};
+
+            exercises.forEach(exercise => {
+                const { category, sets, reps, weight, duration, distance, date, type } = exercise;
+
+                if (!categoryProgress[category]) {
+                    categoryProgress[category] = [];
+                }
+
+                if (type === 'strength') {
+                    const volume = (sets || 0) * (reps || 0) * (weight || 0);
+                    categoryProgress[category].push({ date, volume });
+                } else if (type === 'cardio') {
+                    const speed = (distance || 0) / parseFloat(duration || '1');
+                    categoryProgress[category].push({ date, speed });
+                }
+            });
+
+            res.status(200).json({ metrics, categoryProgress });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Ошибка сервера' });
+        }
+    }
+
+    // В ProgressController
+static async getMyProgress(req: Request, res: Response) {
+    //@ts-ignore
+    const user_id = req.user.id;
+
+    try {
+        const { metrics, exercises } = await ProgressModel.getClientProgress(user_id);
+
+        // Обработка упражнений для категорий
+        const categoryProgress: Record<string, any[]> = {};
+
+        exercises.forEach(exercise => {
+            const { category, sets, reps, weight, duration, distance, date, type } = exercise;
+
+            if (!categoryProgress[category]) {
+                categoryProgress[category] = [];
+            }
+
+            if (type === 'strength') {
+                const volume = (sets || 0) * (reps || 0) * (weight || 0);
+                categoryProgress[category].push({ date, volume });
+            } else if (type === 'cardio') {
+                const speed = (distance || 0) / parseFloat(duration || '1');
+                categoryProgress[category].push({ date, speed });
+            }
+        });
+
+        res.status(200).json({ metrics, categoryProgress });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+}
 }
 
 export default ProgressController;

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../services/api';
+import WorkoutList from '../components/WorkoutList';
+import MealList from '../components/MealList';
+import ProgressCharts from '../components/ProgressCharts';
 
 const Container = styled.div`
   padding: 20px;
@@ -31,6 +34,32 @@ const Content = styled.div`
   margin-top: 20px;
 `;
 
+const AddButton = styled.button`
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #218838;
+  }
+`;
+
+const RemoveButton = styled.button`
+  padding: 8px 16px;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #c82333;
+  }
+`;
+
 const ClientProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'profile' | 'workouts' | 'progress' | 'meals'>('profile');
@@ -38,17 +67,38 @@ const ClientProfile: React.FC = () => {
   const [client, setClient] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
 
+  const fetchClient = async () => {
+    try {
+      const response = await api.get(`/profile/${id}`);
+      setClient(response.data);
+      setIsClient(response.data.isClient);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+
+  const handleAddClient = async (clientId: number) => {
+    try {
+      await api.post('/profile/add-client', { clientId });
+      await fetchClient();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleRemoveClient = async (clientId: number) => {
+    try {
+      await api.post('/profile/remove-client', { clientId });
+      await fetchClient();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+
+
   useEffect(() => {
-    const fetchClient = async () => {
-      try {
-        const response = await api.get(`/profile/${id}`);
-        setClient(response.data);
-        setIsClient(response.data.isClient);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-  
     fetchClient();
   }, [id]);
 
@@ -80,15 +130,21 @@ const ClientProfile: React.FC = () => {
       <Content>
         {activeTab === 'profile' && (
           <div>
+            <img src={client.avatar || 'http://localhost:5000/uploads/default.png'} alt="Avatar" style={{ width: 100, height: 100, borderRadius: '50%' }} />
             <p>Username: {client.username}</p>
             <p>Email: {client.email}</p>
             <p>Full Name: {client.fullname || 'Not set'}</p>
             <p>Phone Number: {client.phone_number || 'Not set'}</p>
+            {client.isClient ? (
+              <RemoveButton onClick={() => handleRemoveClient(client.id)}>Remove from my clients</RemoveButton>
+              ) : (
+                  <AddButton onClick={() => handleAddClient(client.id)}>Add Client</AddButton>
+            )}
           </div>
         )}
-        {isClient && activeTab === 'workouts' && <div>Workouts content</div>}
-        {isClient && activeTab === 'progress' && <div>Progress content</div>}
-        {isClient && activeTab === 'meals' && <div>Meals content</div>}
+        {isClient && activeTab === 'workouts' && <WorkoutList refresh={false} clientId={Number(id)} />}
+        {isClient && activeTab === 'progress' && <ProgressCharts userId={Number(id)} />}
+        {isClient && activeTab === 'meals' && <MealList refresh={false} userId={Number(id)} />}
       </Content>
     </Container>
   );
