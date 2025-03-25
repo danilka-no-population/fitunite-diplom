@@ -2,10 +2,15 @@ import pool from '../config/db';
 
 interface Workout {
   id?: number;
-  client_id: number; // Исправлено с user_id на client_id
+  client_id?: number;
+  trainer_id?: number;
   date: Date;
-  duration: string;
-  feeling: string;
+  feeling?: string;
+  duration?: number;
+  name?: string;
+  description?: string;
+  type?: string;
+  status?: string;
 }
 
 interface WorkoutExercise {
@@ -22,11 +27,11 @@ interface WorkoutExercise {
 class WorkoutModel {
   // Создание тренировки
   static async create(workout: Workout): Promise<Workout> {
-    const { client_id, date, duration, feeling } = workout;
+    const { client_id, trainer_id, date, feeling, duration, name, description, type, status } = workout;
 
     const result = await pool.query(
-      'INSERT INTO Workouts (client_id, date, duration, feeling) VALUES ($1, $2, $3, $4) RETURNING *',
-      [client_id, date, duration, feeling]
+      'INSERT INTO Workouts (client_id, trainer_id, date, feeling, duration, name, description, type, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [client_id, trainer_id, date, feeling, duration, name, description, type, status]
     );
 
     return result.rows[0];
@@ -47,6 +52,12 @@ class WorkoutModel {
   // Получение всех тренировок пользователя
   static async findByClientId(client_id: number): Promise<Workout[]> {
     const result = await pool.query('SELECT * FROM Workouts WHERE client_id = $1', [client_id]);
+    return result.rows;
+  }
+
+  // Получение всех тренировок тренера
+  static async findByTrainerId(trainer_id: number): Promise<Workout[]> {
+    const result = await pool.query('SELECT * FROM Workouts WHERE trainer_id = $1', [trainer_id]);
     return result.rows;
   }
 

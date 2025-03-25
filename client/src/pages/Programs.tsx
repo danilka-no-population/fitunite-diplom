@@ -1,10 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const Container = styled.div`
   padding: 20px;
+`;
+
+const Tabs = styled.div`
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ccc;
+`;
+
+const Tab = styled.button<{ active: boolean }>`
+  padding: 10px 20px;
+  background-color: ${props => props.active ? '#f0f0f0' : 'transparent'};
+  border: none;
+  border-bottom: ${props => props.active ? '2px solid #007bff' : 'none'};
+  cursor: pointer;
+  font-weight: ${props => props.active ? 'bold' : 'normal'};
 `;
 
 const ProgramCard = styled.div`
@@ -30,49 +47,98 @@ const CreateButton = styled.button`
 `;
 
 const ProgramList: React.FC = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [programs, setPrograms] = useState<any[]>([]);
+  const [publicPrograms, setPublicPrograms] = useState<any[]>([]);
+  const [myPrograms, setMyPrograms] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'public' | 'my'>('public');
   const [userRole, setUserRole] = useState<string>('');
+  const [myId, setMyId] = useState<number | null>(null)
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await api.get('/programs');
-        setPrograms(response.data);
+        const publicResponse = await api.get('/programs/public');
+        setPublicPrograms(publicResponse.data);
+        console.log(publicResponse.data)
+
+        const token = localStorage.getItem('token');
+        if (token) {
+          const decodedToken: any = jwtDecode(token);
+          setUserRole(decodedToken.role);
+          setMyId(decodedToken.id)
+
+          if (decodedToken.role === 'trainer') {
+            const myResponse = await api.get('/programs/my');
+            setMyPrograms(myResponse.data);
+          }
+        }
       } catch (error) {
         console.error(error);
       }
     };
 
-    const fetchUserRole = () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(decodedToken.role);
-      }
-    };
-
     fetchPrograms();
-    fetchUserRole();
   }, []);
 
   return (
     <Container>
-      <h1>Training Programs</h1>
+      <h1>Программы тренировок:</h1>
+      
       {userRole === 'trainer' && (
-        <CreateButton onClick={() => navigate('/create-program')}>
-          Create Program
-        </CreateButton>
+        <>
+          <Tabs>
+            <Tab 
+              active={activeTab === 'public'}
+              onClick={() => setActiveTab('public')}
+            >
+              Общедоступные программы
+            </Tab>
+            <Tab 
+              active={activeTab === 'my'}
+              onClick={() => setActiveTab('my')}
+            >
+              Мои программы
+            </Tab>
+          </Tabs>
+
+          <CreateButton onClick={() => navigate('/create-program')}>
+            Создать программу
+          </CreateButton>
+        </>
       )}
-      {programs.map((program) => (
-        <Link to={`/programs/${program.id}`} key={program.id}>
-          <ProgramCard>
-            <h3>{program.name}</h3>
-            <p>{program.description.length > 80 ? `${program.description.substring(0, 80)}...` : program.description}</p>
-          </ProgramCard>
-        </Link>
-      ))}
+
+      {(activeTab === 'public' || userRole !== 'trainer') && (
+        <>
+          
+          {publicPrograms.map((program) => (
+            <Link to={`/programs/${program.id}`} key={program.id}>
+              <ProgramCard>
+                <h3>{program.name}</h3>
+                <p>Тип: {program.type}</p>
+                <p>Продолжительность: {program.days_count} дней</p>
+                <p>Кол-во тренировок: {program.workouts_count}</p>
+                {program.author_id === myId && <h4>Это ваша программа</h4>}
+              </ProgramCard>
+            </Link>
+          ))}
+        </>
+      )}
+
+      {activeTab === 'my' && userRole === 'trainer' && (
+        <>
+          {myPrograms.map((program) => (
+            <Link to={`/programs/${program.id}`} key={program.id}>
+              <ProgramCard>
+                <h3>{program.name}</h3>
+                <p>Тип: {program.type}</p>
+                <p>Продолжительность: {program.days_count} дней</p>
+                <p>Кол-во тренировок: {program.workouts_count}</p>
+                <b>{program.is_public ? 'Общедоступная' : 'Приватная'}</b>
+              </ProgramCard>
+            </Link>
+          ))}
+        </>
+      )}
     </Container>
   );
 };

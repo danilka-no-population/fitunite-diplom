@@ -1,19 +1,29 @@
 import { Request, Response } from 'express';
 import WorkoutModel from '../models/Workout';
+import authMiddleware from '../middleware/authMiddleware';
+import roleMiddleware from '../middleware/roleMiddleware';
+import pool from '../config/db';
 
 class WorkoutController {
   // Создание тренировки
   static async createWorkout(req: Request, res: Response) {
-    const { date, duration, feeling } = req.body;
+    const { date, feeling, duration, name, description, type, status } = req.body;
     //@ts-ignore
-    const client_id = req.user.id; // Исправлено с user_id на client_id
+    const user_id = req.user.id;
+    //@ts-ignore
+    const role = req.user.role;
 
     try {
       const newWorkout = await WorkoutModel.create({
-        client_id,
+        client_id: role === 'client' ? user_id : null,
+        trainer_id: role === 'trainer' ? user_id : null,
         date,
-        duration,
         feeling,
+        duration,
+        name,
+        description,
+        type,
+        status,
       });
 
       res.status(201).json(newWorkout);
@@ -48,10 +58,14 @@ class WorkoutController {
   // Получение всех тренировок пользователя
   static async getWorkouts(req: Request, res: Response) {
     //@ts-ignore
-    const client_id = req.user.id; // Исправлено с user_id на client_id
+    const user_id = req.user.id;
+    //@ts-ignore
+    const role = req.user.role;
 
     try {
-      const workouts = await WorkoutModel.findByClientId(client_id);
+      const workouts = role === 'client'
+        ? await WorkoutModel.findByClientId(user_id)
+        : await WorkoutModel.findByTrainerId(user_id);
       res.status(200).json(workouts);
     } catch (error) {
       console.error(error);

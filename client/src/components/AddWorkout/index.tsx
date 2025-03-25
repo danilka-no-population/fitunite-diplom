@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
+import { jwtDecode } from 'jwt-decode';
 
 const Form = styled.form`
   display: flex;
@@ -48,11 +49,17 @@ const ExerciseForm = styled.div`
 `;
 
 const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }) => {
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState((new Date()).toDateString());
   const [duration, setDuration] = useState('');
   const [feeling, setFeeling] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState('Оздоровление');
   const [exercises, setExercises] = useState<any[]>([]);
   const [availableExercises, setAvailableExercises] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //@ts-ignore
+  const role = jwtDecode(localStorage.getItem('token')).role;
 
   useEffect(() => {
     const fetchExercises = async () => {
@@ -63,7 +70,7 @@ const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }
         console.error(error);
       }
     };
-  
+
     fetchExercises();
   }, []);
 
@@ -85,6 +92,9 @@ const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }
         date,
         duration,
         feeling,
+        name,
+        description,
+        type,
       });
 
       const workoutId = workoutResponse.data.id;
@@ -105,6 +115,9 @@ const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }
       setDate('');
       setDuration('');
       setFeeling('');
+      setName('');
+      setDescription('');
+      setType('Оздоровление');
       setExercises([]);
     } catch (error) {
       console.error(error);
@@ -113,27 +126,58 @@ const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }
 
   return (
     <Form onSubmit={handleSubmit}>
-      <Input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        required
-      />
+      {role === 'trainer' && (
+        <>
+          <Input
+            type="text"
+            placeholder="Название тренировки"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <Input
+            type="text"
+            placeholder="Описание тренировки"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <Select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            required
+          >
+            <option value="Оздоровление">Оздоровление</option>
+            <option value="Похудение">Похудение</option>
+            <option value="Выносливость">Выносливость</option>
+            <option value="Сила">Сила</option>
+            <option value="Кардио">Кардио</option>
+          </Select>
+        </>
+      )}
       <Input
         type="text"
-        placeholder="Duration (e.g., 60 minutes)"
+        placeholder="Длительность тренировки (минуты)"
         value={duration}
         onChange={(e) => setDuration(e.target.value)}
         required
       />
-      <Input
-        type="text"
-        placeholder="Feeling (e.g., Great)"
-        value={feeling}
-        onChange={(e) => setFeeling(e.target.value)}
-        required
-      />
-      <h3>Exercises:</h3>
+      {role === 'client' && (
+        <>
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+          />
+          <Input
+            type="text"
+            placeholder="Ощущения"
+            value={feeling}
+            onChange={(e) => setFeeling(e.target.value)}
+          />
+        </>
+      )}
+      <h3>Упражнения:</h3>
       {exercises.map((exercise, index) => {
   // Преобразуем строковый ID в число (если надо)
   const selectedExercise = availableExercises.find((ex) => String(ex.id) === String(exercise.exerciseId));
@@ -204,68 +248,10 @@ const AddWorkout: React.FC<{ onWorkoutAdded: () => void }> = ({ onWorkoutAdded }
     </ExerciseForm>
   );
 })}
-      {/* {exercises.map((exercise, index) => (
-        <ExerciseForm key={index}>
-          <Select
-            value={exercise.exerciseId}
-            onChange={(e) => handleExerciseChange(index, 'exerciseId', e.target.value)}
-            required
-          >
-            <option value="" disabled>Select Exercise</option>
-            {availableExercises.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.name} ({ex.category})
-              </option>
-            ))}
-          </Select>
-          {availableExercises.find((ex) => ex.id === exercise.exerciseId)?.category === 'Бег' ? (
-  <>
-    <Input
-      type="text"
-      placeholder="Duration (minutes)"
-      value={exercise.duration}
-      onChange={(e) => handleExerciseChange(index, 'duration', e.target.value)}
-      required
-    />
-    <Input
-      type="text"
-      placeholder="Distance (km)"
-      value={exercise.distance}
-      onChange={(e) => handleExerciseChange(index, 'distance', e.target.value)}
-      required
-    />
-  </>
-) : (
-  <>
-    <Input
-      type="number"
-      placeholder="Sets"
-      value={exercise.sets}
-      onChange={(e) => handleExerciseChange(index, 'sets', e.target.value)}
-      required
-    />
-    <Input
-      type="number"
-      placeholder="Reps"
-      value={exercise.reps}
-      onChange={(e) => handleExerciseChange(index, 'reps', e.target.value)}
-      required
-    />
-    <Input
-      type="number"
-      placeholder="Weight (kg)"
-      value={exercise.weight}
-      onChange={(e) => handleExerciseChange(index, 'weight', e.target.value)}
-      required
-    />
-  </>
-)}
-        </ExerciseForm>
-      ))} */}
       <Button type="button" onClick={handleAddExercise}>
-        Add Exercise
+        Добавить упражнение
       </Button>
-      <Button type="submit">Save Workout</Button>
+      <Button type="submit">Сохранить тренировку</Button>
     </Form>
   );
 };
