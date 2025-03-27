@@ -1,6 +1,8 @@
 import pool from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import ChatModel from './Chat';
+import { notifyChatCreated, notifyChatDeleted } from '../websocket';
 
 export interface User {
     id?: number;
@@ -135,12 +137,12 @@ class UserModel {
         return result.rows;
       }
 
-      static async addClient(trainerId: number, clientId: number): Promise<void> {
-        await pool.query(
-          'UPDATE Users SET trainer_id = $1 WHERE id = $2',
-          [trainerId, clientId]
-        );
-      }
+      // static async addClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+      //     [trainerId, clientId]
+      //   );
+      // }
 
       static async getAllClients(): Promise<User[]> {
         const result = await pool.query(
@@ -149,11 +151,33 @@ class UserModel {
         return result.rows;
       }
     
+      // static async removeClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
+      //     [clientId, trainerId]
+      //   );
+      // }
+
+      static async addClient(trainerId: number, clientId: number): Promise<void> {
+        await pool.query(
+          'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+          [trainerId, clientId]
+        );
+        
+        // Создаем чат
+        await ChatModel.findOrCreate(trainerId, clientId);
+        notifyChatCreated(trainerId, clientId);
+      }
+      
       static async removeClient(trainerId: number, clientId: number): Promise<void> {
         await pool.query(
           'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
           [clientId, trainerId]
         );
+        
+        // Удаляем чат
+        await ChatModel.delete(trainerId, clientId);
+        notifyChatDeleted(trainerId, clientId);
       }
 }
 

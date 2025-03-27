@@ -1,24 +1,34 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Nav, NavLink } from './styled';
 import { jwtDecode } from 'jwt-decode';
+import { AuthContext } from '../../authContext';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
-    const isAuthenticated = !!localStorage.getItem('token');
-    const token = localStorage.getItem('token')
-    let decodedToken
-    let role
+    const { logout } = useContext(AuthContext);
+
+    const token = localStorage.getItem('token');
+    const isAuthenticated = !!token;
+
+    let decodedToken: { role?: string } | null = null;
+    let role: string | null = null;
+
+    if (isAuthenticated && token) {
+        try {
+          decodedToken = jwtDecode(token) as { role?: string };
+          role = decodedToken.role || null;
+        } catch (error) {
+          console.error('Failed to decode token:', error);
+          role = null; // Если токен некорректный, сбрасываем роль
+        }
+      }
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        logout()
         navigate('/login');
     };
-
-    if(isAuthenticated){
-        decodedToken = jwtDecode(token)
-        role = decodedToken.role
-    }
 
     return (
         <Nav>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import api from '../../services/api';
 import { Button, ErrorMessage, Form, Input, RadioGroup, RadioLabel } from './styled';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../authContext';
 
 const AuthForm: React.FC<{ isLogin?: boolean }> = ({ isLogin = false }) => {
     const [username, setUsername] = useState('');
@@ -12,6 +13,7 @@ const AuthForm: React.FC<{ isLogin?: boolean }> = ({ isLogin = false }) => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const [role, setRole] = useState<'client' | 'trainer'>('client');
+    const { login } = useContext(AuthContext);
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,6 +27,7 @@ const AuthForm: React.FC<{ isLogin?: boolean }> = ({ isLogin = false }) => {
         try {
             const response = await api.post(endpoint, payload);
             localStorage.setItem('token', response.data.token);
+            login();
             navigate('/');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {

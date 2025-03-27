@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -17,8 +17,11 @@ import Favorites from './pages/Favorites';
 import ClientRoute from './components/ClientRoute';
 import ClientsList from './components/ClientsList';
 import ClientProfile from './pages/ClientProfile';
+import Chat from './components/Chat';
+import { AuthContext } from './authContext'; 
 
 const App: React.FC = () => {
+  const { isAuthenticated } = useContext(AuthContext);
   return (
     <Router>
       <Header />
@@ -45,6 +48,7 @@ const App: React.FC = () => {
           </Route>
         </Route>
       </Routes>
+      {isAuthenticated && <Chat />}
     </Router>
   );
 };

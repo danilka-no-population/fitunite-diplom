@@ -16,6 +16,8 @@ import programCommentRoutes from './routes/programCommentRoutes';
 import favoriteRoutes from './routes/favoriteRoutes';
 import workoutCommentRoutes from './routes/workoutCommentRoutes';
 import mealCommentRoutes from './routes/mealCommentRoutes';
+import { setupWSServer } from './websocket';
+import chatRoutes from './routes/chatRoutes';
 
 dotenv.config();
 
@@ -38,6 +40,7 @@ app.use('/api/programs/comments', programCommentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/workout-comments', workoutCommentRoutes);
 app.use('/api/meal-comments', mealCommentRoutes);
+app.use('/api/chat', chatRoutes);
 
 
 // Добавляем статическую отдачу файлов из папки uploads
@@ -53,6 +56,13 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     res.status(500).json({ message: 'Something went wrong' });
 });
 
-app.listen(PORT, () => {
+// app.listen(PORT, () => {
+//     console.log(`Server is running on port ${PORT}`);
+// });
+
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
+// Настройка WebSocket сервера
+setupWSServer(server);
