@@ -5,6 +5,10 @@ import styled from 'styled-components';
 import api from '../../services/api';
 import { jwtDecode } from 'jwt-decode';
 
+interface UnreadCounts {
+  [chatId: number]: number;
+}
+
 const ChatContainer = styled.div`
   position: fixed;
   bottom: 20px;
@@ -55,7 +59,7 @@ const ChatList = styled.ul`
   margin: 0;
 `;
 
-const ChatListItem = styled.li<{ active: boolean }>`
+const ChatListItem = styled.li<{ active: boolean, hasUnread: boolean }>`
   padding: 10px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
@@ -63,6 +67,7 @@ const ChatListItem = styled.li<{ active: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: ${({ hasUnread }) => (hasUnread ? 'bold' : 'normal')};
 
   &:hover {
     background-color: #f5f5f5;
@@ -74,26 +79,6 @@ const ChatMessages = styled.div`
   padding: 10px;
   overflow-y: auto;
 `;
-
-// const Message = styled.div<{ isMe: boolean }>`
-//   margin-bottom: 10px;
-//   display: flex;
-//   justify-content: ${({ isMe }) => (isMe ? 'flex-end' : 'flex-start')};
-// `;
-
-// const MessageContent = styled.div<{ isMe: boolean }>`
-//   max-width: 80%;
-//   padding: 8px 12px;
-//   border-radius: 15px;
-//   background-color: ${({ isMe }) => (isMe ? '#007bff' : '#f1f1f1')};
-//   color: ${({ isMe }) => (isMe ? 'white' : 'black')};
-// `;
-
-// const MessageTime = styled.div`
-//   font-size: 12px;
-//   color: #999;
-//   margin-top: 4px;
-// `;
 
 const ChatInput = styled.div`
   padding: 10px;
@@ -197,37 +182,62 @@ const Chat: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
 
   const token = localStorage.getItem('token');
-    //@ts-ignore
-    const user: any = jwtDecode(token);
+  //@ts-ignore
+  const user: any = jwtDecode(token);
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const response = await api.get('/chat/unread-counts');
+      const counts: UnreadCounts = {};
+      response.data.forEach((item: { chat_id: number, unread_count: number }) => {
+        counts[item.chat_id] = item.unread_count;
+      });
+      setUnreadCounts(counts);
+      
+      // Для клиента считаем только сообщения от тренера
+      const total = user.role === 'client'
+        ? response.data.reduce((sum: number, item: any) => sum + item.unread_count, 0)
+        : Object.values(counts).reduce((sum, count) => sum + count, 0);
+      
+      setUnreadCount(total);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
 
-    const fetchChats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/chat');
-        setChats(response.data);
-        if (response.data.length > 0) {
-          setSelectedChat(response.data[0]);
-        }
+        const [chatsResponse, countsResponse] = await Promise.all([
+          api.get('/chat'),
+          api.get('/chat/unread-counts')
+        ]);
+        
+        setChats(chatsResponse.data);
+        
+        const counts: UnreadCounts = {};
+        countsResponse.data.forEach((item: { chat_id: number, unread_count: number }) => {
+          counts[item.chat_id] = item.unread_count;
+        });
+        setUnreadCounts(counts);
+        
+        // Устанавливаем общее количество непрочитанных
+        const total = user.role === 'client'
+          ? countsResponse.data.reduce((sum: number, item: any) => sum + item.unread_count, 0)
+          : Object.values(counts).reduce((sum, count) => sum + count, 0);
+        
+        setUnreadCount(total);
       } catch (error) {
         console.error(error);
       }
     };
 
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await api.get('/chat/unread-count');
-        setUnreadCount(response.data.count);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchChats();
-    fetchUnreadCount();
+    fetchData();
 
     // WebSocket соединение
     const socket = new WebSocket(`ws://localhost:5000?token=${token}`);
@@ -238,15 +248,25 @@ const Chat: React.FC = () => {
       
       if (data.type === 'new_message') {
         setMessages(prev => [...prev, data.message]);
-      } 
+        
+        // Для клиента увеличиваем счетчик только если чат не открыт
+        if (user.role === 'client' && !isOpen) {
+          setUnreadCount(prev => prev + 1);
+          setUnreadCounts(prev => ({
+            ...prev,
+            [data.message.chat_id]: (prev[data.message.chat_id] || 0) + 1
+          }));
+        } else {
+          fetchUnreadCounts();
+        }
+      }
       else if (data.type === 'message_sent') {
-        // Заменяем временное сообщение на постоянное из БД
         setMessages(prev => prev.map(msg => 
           msg.id === data.tempId ? data.message : msg
         ));
       }
       else if (data.type === 'chat_created') {
-        fetchChats();
+        fetchData();
       } 
       else if (data.type === 'chat_deleted') {
         setChats(prev => prev.filter(chat => 
@@ -257,16 +277,34 @@ const Chat: React.FC = () => {
             selectedChat.client_id === data.client_id) {
           setSelectedChat(null);
         }
+        fetchUnreadCounts();
       }
     };
 
     return () => {
       socket.close();
     };
-  }, [token]);
+  }, [token, isOpen]);
+
+  const handleSelectChat = async (chat: any) => {
+    setSelectedChat(chat);
+    try {
+      const response = await api.get(`/chat/${chat.id}/messages`);
+      setMessages(response.data);
+      scrollToBottom();
+      
+      // Помечаем как прочитанные
+      await api.get(`/chat/${chat.id}/messages`);
+      
+      // Обновляем счетчики
+      fetchUnreadCounts();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    if (selectedChat) {
+    if (selectedChat && isOpen) {
       const fetchMessages = async () => {
         try {
           const response = await api.get(`/chat/${selectedChat.id}/messages`);
@@ -278,61 +316,22 @@ const Chat: React.FC = () => {
       };
       fetchMessages();
     }
-  }, [selectedChat]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    scrollToBottom();
-  }, [selectedChat, messages]);
+  }, [selectedChat, isOpen]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTo({
+        top: messagesEndRef.current.scrollHeight,
         behavior: behavior
       });
     }
   };
 
-  // const handleSendMessage = async () => {
-  //   if (!newMessage.trim() || !selectedChat || !selectedChat.id || !ws) return;
-  //   //@ts-ignore
-  //   const user: any = jwtDecode(token);
-
-  //   try {
-  //     const response = await api.post(`/chat/${selectedChat.id}/messages`, {
-  //       message: newMessage
-  //     });
-      
-  //     // Используем сообщение из ответа сервера вместо временного
-  //     setMessages(prev => [...prev, response.data]);
-  //     setNewMessage('');
-  //     scrollToBottom();
-      
-  //     // Отправка через WebSocket
-  //     ws.send(JSON.stringify({
-  //       type: 'message',
-  //       chat_id: selectedChat.id,
-  //       sender_id: user.id,
-  //       message: newMessage
-  //     }));
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChat || !ws) return;
-    //@ts-ignore
-    const user: any = jwtDecode(token);
-    const tempId = Date.now(); // Временный ID для оптимистичного обновления
+    const tempId = Date.now();
   
     try {
-      // Оптимистичное обновление
       const tempMessage = {
         id: tempId,
         chat_id: selectedChat.id,
@@ -344,9 +343,8 @@ const Chat: React.FC = () => {
       
       setMessages(prev => [...prev, tempMessage]);
       setNewMessage('');
-      scrollToBottom();
+      // scrollToBottom();
       
-      // Отправляем только через WebSocket
       ws.send(JSON.stringify({
         type: 'message',
         chat_id: selectedChat.id,
@@ -355,44 +353,60 @@ const Chat: React.FC = () => {
       }));
     } catch (error) {
       console.error(error);
-      // Откатываем оптимистичное обновление в случае ошибки
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
-    }
-  };
-
-  const getChatName = (chat: any) => {
-    //@ts-ignore
-    const user: any = jwtDecode(token);
-    if (user.role === 'trainer') {
-      return chat.client_username;
-    } else {
-      return chat.trainer_username;
-    }
-  };
-
-  const getChatAvatar = (chat: any) => {
-    //@ts-ignore
-    const user: any = jwtDecode(token);
-    if (user.role === 'trainer') {
-      return chat.client_avatar || 'http://localhost:5000/uploads/default.png';
-    } else {
-      return chat.trainer_avatar || 'http://localhost:5000/uploads/default.png';
     }
   };
 
   const handleOpenChat = () => {
     setIsOpen(true);
-    // Используем setTimeout для гарантии, что DOM обновился
-    setTimeout(() => {
-      scrollToBottom('auto'); // 'auto' вместо 'smooth' для мгновенного скролла
-    }, 0);
+    
+    // Для клиента автоматически выбираем чат с тренером при открытии
+    if (user.role === 'client' && chats.length > 0) {
+      setSelectedChat(chats[0]);
+      
+      // Помечаем сообщения как прочитанные
+      setTimeout(async () => {
+        try {
+          await api.get(`/chat/${chats[0].id}/messages`);
+          fetchUnreadCounts();
+        } catch (error) {
+          console.error(error);
+        }
+      }, 0);
+    }
+    
+    setTimeout(() => scrollToBottom('auto'), 0);
+  };
+
+  useEffect(() => {
+    if (isOpen && selectedChat) {
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+      }, 0);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChat, isOpen, messages]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const getChatName = (chat: any) => {
+    return user.role === 'trainer' ? chat.client_username : chat.trainer_username;
+  };
+
+  const getChatAvatar = (chat: any) => {
+    return user.role === 'trainer' 
+      ? chat.client_avatar || 'http://localhost:5000/uploads/default.png'
+      : chat.trainer_avatar || 'http://localhost:5000/uploads/default.png';
   };
 
   if (!isOpen) {
     return (
       <ChatButton onClick={handleOpenChat}>
         💬
-        {unreadCount > 0 && <UnreadBadge>{unreadCount}</UnreadBadge>}
+        {unreadCount > 0 && <UnreadBadge>{unreadCount > 10 ? '10+' : unreadCount}</UnreadBadge>}
       </ChatButton>
     );
   }
@@ -411,7 +425,8 @@ const Chat: React.FC = () => {
                 <ChatListItem 
                   key={chat.id}
                   active={selectedChat?.id === chat.id}
-                  onClick={() => setSelectedChat(chat)}
+                  onClick={() => handleSelectChat(chat)}
+                  hasUnread={unreadCounts[chat.id] > 0}
                 >
                   <div style={{alignItems: 'center'}}>
                     <img 
@@ -421,14 +436,16 @@ const Chat: React.FC = () => {
                     />
                     {getChatName(chat)}
                   </div>
-                  {/* Здесь можно добавить индикатор непрочитанных сообщений */}
+                  {unreadCounts[chat.id] > 0 && (
+                    <UnreadBadge>
+                      {unreadCounts[chat.id] > 10 ? '10+' : unreadCounts[chat.id]}
+                    </UnreadBadge>
+                  )}
                 </ChatListItem>
               ))
             ) : (
               <div style={{ padding: 10 }}>
-                {
-                  //@ts-ignore
-                jwtDecode(token).role === 'trainer' 
+                {user.role === 'trainer' 
                   ? 'У вас пока нет клиентов' 
                   : 'У вас пока что нет тренера'}
               </div>
@@ -438,20 +455,7 @@ const Chat: React.FC = () => {
         <ChatContent>
           {selectedChat ? (
             <>
-              <ChatMessages ref={messagesContainerRef}>
-                {/* {messages.map(message => (
-                  <Message key={message.id} isMe={message.sender_id === parseInt(localStorage.getItem('userId') || '0')}>
-                    <MessageContent isMe={message.sender_id === parseInt(localStorage.getItem('userId') || '0')}>
-                      {message.message}
-                      <MessageTime>
-                        {new Date(message.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {message.sender_id === parseInt(localStorage.getItem('userId') || '0') && (
-                          <span style={{color: 'white'}}> {message.is_read ? '✔✔' : '✔'}</span>
-                        )}
-                      </MessageTime>
-                    </MessageContent>
-                  </Message>
-                ))} */}
+              <ChatMessages ref={messagesEndRef}>
                 {messages.map(message => {
                   const isMe = message.sender_id === user.id;
                   return (
@@ -485,9 +489,7 @@ const Chat: React.FC = () => {
             </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              {
-                //@ts-ignore
-              jwtDecode(token).role === 'trainer' 
+              {user.role === 'trainer' 
                 ? 'Выберите чат с клиентом' 
                 : 'Нет активного чата'}
             </div>

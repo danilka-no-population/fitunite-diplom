@@ -22,5 +22,5 @@ router.post('/:chat_id/messages', async (req, res, next) => {
     //@ts-ignore
   }, ChatController.sendMessage);
 router.get('/unread-count', ChatController.getUnreadCount);
-
+router.get('/unread-counts', ChatController.getUnreadCountsByChat);
 export default router;

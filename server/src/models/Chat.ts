@@ -89,6 +89,37 @@ class ChatModel {
     );
   }
 
+  // static async getUnreadCount(user_id: number): Promise<number> {
+  //   const result = await pool.query(
+  //     `SELECT COUNT(*) FROM Messages m
+  //      JOIN Chats c ON m.chat_id = c.id
+  //      WHERE ((c.trainer_id = $1 AND m.sender_id = c.client_id) OR 
+  //             (c.client_id = $1 AND m.sender_id = c.trainer_id))
+  //      AND m.is_read = FALSE`,
+  //     [user_id]
+  //   );
+  //   return parseInt(result.rows[0].count);
+  // }
+
+  static async getUnreadCountsByChat(user_id: number): Promise<{chat_id: number, unread_count: number}[]> {
+    const result = await pool.query(
+      `SELECT 
+        m.chat_id, 
+        COUNT(*) as unread_count
+      FROM Messages m
+      JOIN Chats c ON m.chat_id = c.id
+      WHERE ((c.trainer_id = $1 AND m.sender_id = c.client_id) OR 
+             (c.client_id = $1 AND m.sender_id = c.trainer_id))
+      AND m.is_read = FALSE
+      GROUP BY m.chat_id`,
+      [user_id]
+    );
+    return result.rows.map(row => ({
+      chat_id: row.chat_id,
+      unread_count: parseInt(row.unread_count)
+    }));
+  }
+
   static async getUnreadCount(user_id: number): Promise<number> {
     const result = await pool.query(
       `SELECT COUNT(*) FROM Messages m
@@ -97,6 +128,19 @@ class ChatModel {
               (c.client_id = $1 AND m.sender_id = c.trainer_id))
        AND m.is_read = FALSE`,
       [user_id]
+    );
+    return parseInt(result.rows[0].count);
+  }
+  
+  // Для клиента считаем только сообщения от тренера
+  static async getClientUnreadCount(client_id: number): Promise<number> {
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM Messages m
+       JOIN Chats c ON m.chat_id = c.id
+       WHERE c.client_id = $1 
+       AND m.sender_id = c.trainer_id
+       AND m.is_read = FALSE`,
+      [client_id]
     );
     return parseInt(result.rows[0].count);
   }

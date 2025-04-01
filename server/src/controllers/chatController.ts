@@ -74,9 +74,27 @@ class ChatController {
     try {
       //@ts-ignore
       const user_id = req.user.id;
-
-      const count = await ChatModel.getUnreadCount(user_id);
+      //@ts-ignore
+      const role = req.user.role;
+  
+      const count = role === 'client' 
+        ? await ChatModel.getClientUnreadCount(user_id)
+        : await ChatModel.getUnreadCount(user_id);
+        
       res.status(200).json({ count });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async getUnreadCountsByChat(req: Request, res: Response) {
+    try {
+      //@ts-ignore
+      const user_id = req.user.id;
+  
+      const counts = await ChatModel.getUnreadCountsByChat(user_id);
+      res.status(200).json(counts);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error' });
