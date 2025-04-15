@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import api from '../../services/api';
 import AddWorkoutComment from '../AddWorkoutComment';
 import { jwtDecode } from 'jwt-decode';
+import ScrollReveal from '../../components/ScrollReveal';
 
 const Container = styled.div`
   padding: 20px;
@@ -66,9 +67,9 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
 
   return (
     <Container>
-      <h1>{clientId ? "Тренировки клиента" : 'Мои тренировки'}</h1>
+      <ScrollReveal><h1>{clientId ? "Тренировки клиента" : 'Мои тренировки'}</h1></ScrollReveal>
       {workouts.map((workout) => (
-        <WorkoutCard key={workout.id}>
+        <ScrollReveal delay={0.05} duration={0.5}><WorkoutCard key={workout.id}>
           {clientId && <h5>{new Date(workout.date).toLocaleDateString()}</h5>}
           {role === 'trainer' && (
             <>
@@ -117,7 +118,7 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
             </CommentCard>
           ))}
           {role === 'trainer' && <AddWorkoutComment workoutId={workout.id} onCommentAdded={handleCommentAdded} />}
-        </WorkoutCard>
+        </WorkoutCard></ScrollReveal>
       ))}
     </Container>
   );

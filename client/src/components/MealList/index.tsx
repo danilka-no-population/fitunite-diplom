@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
 import AddMealComment from '../AddMealComment';
+import ScrollReveal from '../../components/ScrollReveal';
 
 const Container = styled.div`
   padding: 20px;
@@ -104,13 +105,13 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
 
   return (
     <Container>
-      <h1>{userId ? "Client's Meals" : 'My Meals'}</h1>
+      <ScrollReveal><h1>{userId ? "Client's Meals" : 'My Meals'}</h1></ScrollReveal>
       {meals.map((meal) => {
         const { totalCalories, totalProteins, totalFats, totalCarbs } = calculateNutrition(meal.products);
         const groupedProducts = groupProductsByMealType(meal.products);
 
         return (
-          <MealCard key={meal.id}>
+          <ScrollReveal delay={0.05}><MealCard key={meal.id}>
             <h3>{new Date(meal.date).toLocaleDateString()}</h3>
             <h4>Breakfast:</h4>
             {groupedProducts.breakfast.map((product) => (
@@ -159,7 +160,7 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
               </CommentCard>
             ))}
             {!userId ? <></> : <AddMealComment mealId={meal.id} onCommentAdded={handleCommentAdded} />}
-          </MealCard>
+          </MealCard></ScrollReveal>
         );
       })}
     </Container>

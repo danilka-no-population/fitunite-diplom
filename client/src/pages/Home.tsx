@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import ScrollReveal from '../components/ScrollReveal';
 
 const Container = styled.div`
     padding: 20px;
@@ -9,8 +10,7 @@ const Container = styled.div`
 const Home: React.FC = () => {
     return (
         <Container>
-            <h1>Welcome to FitUnite!</h1>
-            <p>Track your workouts, meals, and progress with ease.</p>
+            <ScrollReveal delay={0.05}><h1>Добро пожаловать в FitUnite!</h1></ScrollReveal>
         </Container>
     );
 };

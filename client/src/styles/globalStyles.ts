@@ -12,8 +12,8 @@ export const GlobalStyles = createGlobalStyle`
         font-optical-sizing: auto;
         font-weight: 400;
         font-style: normal;
-        background-color: #f5f5f5;
-        color: #333;
+        background-color: #EDF5E0;
+        color: #05396B;
         line-height: 1.6;
     }
 

@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import api from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import ScrollReveal from '../components/ScrollReveal';
 
 const Container = styled.div`
   padding: 20px;
@@ -82,11 +83,11 @@ const ProgramList: React.FC = () => {
 
   return (
     <Container>
-      <h1>Программы тренировок:</h1>
+      <ScrollReveal><h1>Программы тренировок:</h1></ScrollReveal>
       
       {userRole === 'trainer' && (
         <>
-          <Tabs>
+          <ScrollReveal><Tabs>
             <Tab 
               active={activeTab === 'public'}
               onClick={() => setActiveTab('public')}
@@ -99,11 +100,11 @@ const ProgramList: React.FC = () => {
             >
               Мои программы
             </Tab>
-          </Tabs>
+          </Tabs></ScrollReveal>
 
-          <CreateButton onClick={() => navigate('/create-program')}>
+          <ScrollReveal><CreateButton onClick={() => navigate('/create-program')}>
             Создать программу
-          </CreateButton>
+          </CreateButton></ScrollReveal>
         </>
       )}
 
@@ -112,13 +113,13 @@ const ProgramList: React.FC = () => {
           
           {publicPrograms.map((program) => (
             <Link to={`/programs/${program.id}`} key={program.id}>
-              <ProgramCard>
+              <ScrollReveal><ProgramCard>
                 <h3>{program.name}</h3>
                 <p>Тип: {program.type}</p>
                 <p>Продолжительность: {program.days_count} дней</p>
                 <p>Кол-во тренировок: {program.workouts_count}</p>
                 {program.author_id === myId && <h4>Это ваша программа</h4>}
-              </ProgramCard>
+              </ProgramCard></ScrollReveal>
             </Link>
           ))}
         </>
@@ -128,13 +129,13 @@ const ProgramList: React.FC = () => {
         <>
           {myPrograms.map((program) => (
             <Link to={`/programs/${program.id}`} key={program.id}>
-              <ProgramCard>
+              <ScrollReveal delay={0.1}><ProgramCard>
                 <h3>{program.name}</h3>
                 <p>Тип: {program.type}</p>
                 <p>Продолжительность: {program.days_count} дней</p>
                 <p>Кол-во тренировок: {program.workouts_count}</p>
                 <b>{program.is_public ? 'Общедоступная' : 'Приватная'}</b>
-              </ProgramCard>
+              </ProgramCard></ScrollReveal>
             </Link>
           ))}
         </>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
+import ScrollReveal from '../ScrollReveal';
 
 const Form = styled.form`
   display: flex;
@@ -135,7 +136,7 @@ const AddMeal: React.FC<{ onMealAdded: () => void }> = ({ onMealAdded }) => {
   };
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <ScrollReveal><Form onSubmit={handleSubmit}>
       <Input
         type="date"
         value={date}
@@ -230,7 +231,7 @@ const AddMeal: React.FC<{ onMealAdded: () => void }> = ({ onMealAdded }) => {
         </Button>
       </MealSection>
       <Button type="submit">Save Meal</Button>
-    </Form>
+    </Form></ScrollReveal>
   );
 };
 
