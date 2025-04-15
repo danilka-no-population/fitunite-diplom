@@ -134,6 +134,7 @@ export const Nav = styled.nav<NavProps>`
     box-shadow: ${({ $scrolled }) => $scrolled ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none'};
     transition: all 0.3s ease-in-out;
     height: 70px;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
 
     .desktop-actions {
         display: flex;
