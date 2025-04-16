@@ -19,12 +19,14 @@ import ClientRoute from '../ClientRoute';
 import ClientsList from '../ClientsList';
 import ClientProfile from '../../pages/ClientProfile';
 import { PageWrapper } from '../PageWrapper';
+import ScrollToTop from '../ScrollToTop';
 
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
+      <ScrollToTop/>
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
         <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
