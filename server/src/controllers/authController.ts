@@ -11,10 +11,10 @@ class AuthController {
             const existingUserByUsername = await pool.query('SELECT * FROM Users WHERE username = $1', [username]);
         
             if (existingUserByEmail) {
-                return res.status(400).json({ message: 'User with this email already exists' });
+                return res.status(400).json({ message: 'Эта почта уже занята!' });
             }
             if (existingUserByUsername.rows[0]) {
-                return res.status(400).json({ message: 'User with this username already exists' });
+                return res.status(400).json({ message: 'Этот юзернейм уже занят!' });
             }
         
             const newUser = await UserModel.create({
@@ -43,12 +43,12 @@ class AuthController {
         try {
             const user = await UserModel.findByEmailOrUsername(emailOrUsername);
             if (!user) {
-                return res.status(400).json({ message: 'Invalid email/username or password' });
+                return res.status(400).json({ message: 'Неверный юзернейм, почта и/или пароль!' });
             }
     
             const isMatch = await UserModel.comparePassword(password, user.password_hash);
             if (!isMatch) {
-                return res.status(400).json({ message: 'Invalid email/username or password' });
+                return res.status(400).json({ message: 'Неверный юзернейм, почта и/или пароль!' });
             }
     
             const token = UserModel.generateToken({
