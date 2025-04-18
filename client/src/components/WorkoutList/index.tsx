@@ -5,37 +5,107 @@ import api from '../../services/api';
 import AddWorkoutComment from '../AddWorkoutComment';
 import { jwtDecode } from 'jwt-decode';
 import ScrollReveal from '../../components/ScrollReveal';
+import Pagination from '../Pagination';
 
 const Container = styled.div`
-  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 1.1rem;
 `;
 
 const WorkoutCard = styled.div`
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 15px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-bottom: 30px;
+`;
+
+const WorkoutDate = styled.h3`
+  color: #05396B;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+`;
+
+const WorkoutMeta = styled.div`
+  margin-bottom: 15px;
+  color: #666;
+`;
+
+const ExerciseSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const SectionTitle = styled.h4`
+  color: #058E3A;
+  font-size: 1.2rem;
   margin-bottom: 10px;
 `;
 
 const ExerciseCard = styled.div`
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f5f9ff;
+  border-radius: 10px;
+  border: 1px solid #e0e9ff;
+`;
+
+const ExerciseName = styled.p`
+  font-weight: bold;
+  color: #05396B;
+  margin-bottom: 5px;
+`;
+
+const ExerciseDetail = styled.p`
+  color: #666;
+  margin-bottom: 3px;
+  font-size: 0.9rem;
 `;
 
 const CommentCard = styled.div`
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+  background-color: #f0f7ff;
+  border-radius: 10px;
+  border: 1px solid #d0e3ff;
+`;
+
+const CommentText = styled.p`
+  color: #05396B;
+  margin-bottom: 5px;
+`;
+
+const CommentDate = styled.small`
+  color: #888;
+  font-size: 0.8rem;
+`;
+
+const NoComments = styled.div`
+  padding: 15px;
+  margin-top: 20px;
   background-color: #f9f9f9;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  color: #666;
+  text-align: center;
 `;
 
 const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refresh, clientId }) => {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [update, setUpdate] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const workoutsPerPage = 3;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   //@ts-ignore
   const role = jwtDecode(localStorage.getItem('token')).role;
@@ -52,6 +122,17 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
             return { ...workout, exercises: exercisesResponse.data, comments: commentsResponse.data };
           })
         );
+        
+        // Сортировка по дате (новые сверху)
+        workoutsWithExercises.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA === dateB) {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
+          return dateB - dateA;
+        });
+        
         setWorkouts(workoutsWithExercises);
       } catch (error) {
         console.error(error);
@@ -61,65 +142,115 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
   }, [refresh, clientId, update]);
 
   const handleCommentAdded = () => {
-    setWorkouts((prevWorkouts) => [...prevWorkouts]);
     setUpdate(!update);
   };
 
+  // Пагинация
+  const indexOfLastWorkout = currentPage * workoutsPerPage;
+  const indexOfFirstWorkout = indexOfLastWorkout - workoutsPerPage;
+  const currentWorkouts = workouts.slice(indexOfFirstWorkout, indexOfLastWorkout);
+  const totalPages = Math.ceil(workouts.length / workoutsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <Container>
-      <ScrollReveal><h1>{clientId ? "Тренировки клиента" : 'Мои тренировки'}</h1></ScrollReveal>
-      {workouts.map((workout) => (
-        <ScrollReveal delay={0.05} duration={0.5}><WorkoutCard key={workout.id}>
-          {clientId && <h5>{new Date(workout.date).toLocaleDateString()}</h5>}
-          {role === 'trainer' && (
-            <>
-              {workout.name ? <h3>{workout.name}</h3> : null}
-              {workout.type ? <p>Тип: {workout.type}</p> : null}
-              {workout.description ? <p>Описание: {workout.description}</p> : null}
-            </>
-          )}
-          {role === 'client' && <h3>{new Date(workout.date).toLocaleDateString()}</h3>}
-          <p>Длительность: {workout.duration} минут</p>
-          {role === 'client' && <p>Ощущения: {workout.feeling}</p>}
-          <h4>Упражнения:</h4>
-          {workout.exercises?.map((exercise: any) => (
-            <ExerciseCard key={exercise.id}>
-              <p>Упражнение: {exercise.name}</p>
-              <p>Категория: {exercise.category}</p>
-              {exercise.type === 'cardio' ? (
-                <>
-                  <p>Продолжительность: {exercise.duration} минут</p>
-                  <p>Расстояние: {exercise.distance} км</p>
-                  <p>Средняя скорость: {Number(exercise.distance) / (Number(exercise.duration) / 60)} км/ч</p>
-                </>
-              ) : (
-                <>
-                  <p>Подходы: {exercise.sets}</p>
-                  <p>Повторения: {exercise.reps}</p>
-                  <p>Вес: {exercise.weight} кг</p>
-                </>
-              )}
-            </ExerciseCard>
-          ))}
-          <h4>Комментарии от тренера:</h4>
-          {workout.comments?.map((comment: any) => (
-            <CommentCard key={comment.id}>
-              <p>{comment.comment}</p>
-              <small>{new Date(comment.created_at).toLocaleString()}</small>
-            </CommentCard>
-          ))}
-          {workout.comments.length === 0 && (role === 'client' ? (
-            <CommentCard>
-              <p>Ваш тренер пока не оставлял комментариев!</p>
-            </CommentCard>
-          ) : (
-            <CommentCard>
-              <p>Вы пока не оставляли комментариев!</p>
-            </CommentCard>
-          ))}
-          {role === 'trainer' && <AddWorkoutComment workoutId={workout.id} onCommentAdded={handleCommentAdded} />}
-        </WorkoutCard></ScrollReveal>
-      ))}
+        {workouts.length === 0 ? (
+          <EmptyMessage>Вы пока не добавляли тренировок!</EmptyMessage>
+        ) : (
+          <>
+            {currentWorkouts.map((workout) => (
+              <ScrollReveal delay={0.05} key={workout.id}>
+                <WorkoutCard>
+                  <WorkoutDate>
+                    {new Date(workout.date).toLocaleDateString('ru-RU', { 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </WorkoutDate>
+                  
+                  {role === 'trainer' && (
+                    <>
+                      {workout.name && <ExerciseName>{workout.name}</ExerciseName>}
+                      {workout.type && <WorkoutMeta>Тип: {workout.type}</WorkoutMeta>}
+                      {workout.description && <WorkoutMeta>Описание: {workout.description}</WorkoutMeta>}
+                    </>
+                  )}
+                  
+                  <WorkoutMeta>Длительность: {workout.duration} минут</WorkoutMeta>
+                  
+                  {role === 'client' && workout.feeling && (
+                    <WorkoutMeta>Ощущения: {workout.feeling}</WorkoutMeta>
+                  )}
+                  
+                  <ExerciseSection>
+                    <SectionTitle>Упражнения:</SectionTitle>
+                    {workout.exercises?.map((exercise: any) => (
+                      <ExerciseCard key={exercise.id}>
+                        <ExerciseName>{exercise.name}</ExerciseName>
+                        <ExerciseDetail>Категория: {exercise.category}</ExerciseDetail>
+                        
+                        {exercise.category === 'Бег' ? (
+                          <>
+                            <ExerciseDetail>Продолжительность: {exercise.duration} минут</ExerciseDetail>
+                            <ExerciseDetail>Расстояние: {exercise.distance} км</ExerciseDetail>
+                            <ExerciseDetail>
+                              Средняя скорость: {(exercise.distance / (exercise.duration / 60)).toFixed(2)} км/ч
+                            </ExerciseDetail>
+                          </>
+                        ) : (
+                          <>
+                            <ExerciseDetail>Подходы: {exercise.sets}</ExerciseDetail>
+                            <ExerciseDetail>Повторения: {exercise.reps}</ExerciseDetail>
+                            {exercise.weight > 0 && (
+                              <ExerciseDetail>Вес: {exercise.weight} кг</ExerciseDetail>
+                            )}
+                          </>
+                        )}
+                      </ExerciseCard>
+                    ))}
+                  </ExerciseSection>
+                  
+                  <CommentCard>
+                    <SectionTitle>Комментарии тренера:</SectionTitle>
+                    {workout.comments?.length > 0 ? (
+                      workout.comments.map((comment: any) => (
+                        <div key={comment.id}>
+                          <CommentText>{comment.comment}</CommentText>
+                          <CommentDate>
+                            {new Date(comment.created_at).toLocaleString('ru-RU')}
+                          </CommentDate>
+                        </div>
+                      ))
+                    ) : (
+                      <NoComments>
+                        {role === 'client' ? 
+                          'Ваш тренер пока не оставлял комментариев' : 
+                          'Вы пока не оставляли комментариев'}
+                      </NoComments>
+                    )}
+                  </CommentCard>
+                  
+                  {role === 'trainer' && (
+                    <AddWorkoutComment 
+                      workoutId={workout.id} 
+                      onCommentAdded={handleCommentAdded} 
+                    />
+                  )}
+                </WorkoutCard>
+              </ScrollReveal>
+            ))}
+            
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                paginate={paginate}
+              />
+            )}
+          </>
+        )}
     </Container>
   );
 };
