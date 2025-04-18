@@ -166,6 +166,71 @@ const TitleContainer = styled.div`
   }
 `
 
+const FiltersContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 25px;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (max-width: 550px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const SearchInput = styled.input`
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  color: #05396B;
+  flex: 2;
+  min-width: 180px;
+  
+  &:focus {
+    border-color: #5CDB94;
+    background-color: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(92, 219, 148, 0.2);
+  }
+
+  @media (max-width: 600px){
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+`;
+
+const Select = styled.select`
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  flex: 1;
+  min-width: 150px;
+  
+  &:focus {
+    border-color: #5CDB94;
+    background-color: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(92, 219, 148, 0.2);
+  }
+
+  @media (max-width: 600px){
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+`;
+
+const Count = styled.div`
+  font-size: 1rem;
+`
+
 const ProgramList: React.FC = () => {
   const [publicPrograms, setPublicPrograms] = useState<any[]>([]);
   const [myPrograms, setMyPrograms] = useState<any[]>([]);
@@ -176,6 +241,10 @@ const ProgramList: React.FC = () => {
   const programsPerPage = 5;
   const navigate = useNavigate();
   const [authors, setAuthors] = useState<{ [key: number]: { username: string; fullname: string } }>({});
+
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedDuration, setSelectedDuration] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
 
   useEffect(() => {
@@ -233,12 +302,23 @@ const ProgramList: React.FC = () => {
     }
   }, [publicPrograms, myPrograms]);
 
+  const filteredPublicPrograms = publicPrograms.filter(program => {
+    const matchesType = selectedType === 'all' || program.type === selectedType;
+    const matchesDuration =
+      selectedDuration === 'all' ||
+      (selectedDuration === '7' && program.days_count <= 7) ||
+      (selectedDuration === '30' && program.days_count > 7 && program.days_count <= 30) ||
+      (selectedDuration === '90' && program.days_count > 30);
+    const matchesSearch = program.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesType && matchesDuration && matchesSearch;
+  });
+
   // Пагинация
   const indexOfLastProgram = currentPage * programsPerPage;
   const indexOfFirstProgram = indexOfLastProgram - programsPerPage;
-  const currentPublicPrograms = publicPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
+  const currentPublicPrograms = filteredPublicPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
   const currentMyPrograms = myPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
-  const totalPublicPages = Math.ceil(publicPrograms.length / programsPerPage);
+  const totalPublicPages = Math.ceil(filteredPublicPrograms.length / programsPerPage);
   const totalMyPages = Math.ceil(myPrograms.length / programsPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -265,6 +345,9 @@ const ProgramList: React.FC = () => {
                 onClick={() => {
                   setActiveTab('my');
                   setCurrentPage(1);
+                  setSelectedType('all')
+                  setSearchTerm('')
+                  setSelectedDuration('all')
                 }}
               >
                 Мои программы
@@ -272,12 +355,96 @@ const ProgramList: React.FC = () => {
             </Tabs>
           </ScrollReveal>
 
-          <ScrollReveal delay={0.2}>
-            <CreateButton onClick={() => navigate('/create-program')}>
-              Создать программу
-            </CreateButton>
-          </ScrollReveal>
+          {activeTab === 'my' && (
+            <ScrollReveal delay={0.1}>
+              <CreateButton onClick={() => navigate('/create-program')}>
+                Создать программу
+              </CreateButton>
+            </ScrollReveal>
+          )}
         </>
+      )}
+
+      {activeTab === 'public' && userRole === 'trainer' && (
+        <ScrollReveal delay={0.2}>
+          {
+            selectedType === 'all' && selectedDuration === 'all' && searchTerm === '' ? (
+              <Count></Count>
+            ) : (
+              <ScrollReveal delay={0.05}>
+                <div style={{ marginBottom: '30px', fontSize: '1.2rem', fontWeight: '400', color: '#058E3A', textAlign: 'center' }}>
+                Найдено <b>{currentPublicPrograms.length}</b> {currentPublicPrograms.length === 1 ? 'программа' : 
+                  currentPublicPrograms.length >= 2 && currentPublicPrograms.length <= 4 ? 'программы' : 'программ'}
+                </div>
+              </ScrollReveal>
+            )
+          }
+          <FiltersContainer>
+            <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+              <option value="all">Все типы</option>
+              <option value="Оздоровление">Оздоровление</option>
+              <option value="Сила">Сила</option>
+              <option value="Выносливость">Выносливость</option>
+              <option value="Укрепление мышечного корсета">Укрепление мышечного корсета</option>
+              <option value="Комбинированная">Комбинированная</option>
+            </Select>
+
+            <Select value={selectedDuration} onChange={(e) => setSelectedDuration(e.target.value)}>
+              <option value="all">Все длительности</option>
+              <option value="7">7 дней</option>
+              <option value="30">30 дней</option>
+              <option value="90">90 дней</option>
+            </Select>
+
+            <SearchInput
+              type="text"
+              placeholder="Поиск по названию..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </FiltersContainer>
+        </ScrollReveal>
+      )}
+
+      {activeTab === 'public' && userRole !== 'trainer' && (
+        <ScrollReveal delay={0.2}>
+          {
+            selectedType === 'all' && selectedDuration === 'all' && searchTerm === '' ? (
+              <Count></Count>
+            ) : (
+              <ScrollReveal delay={0.05}>
+                <div style={{ marginBottom: '30px', fontSize: '1.2rem', fontWeight: '400', color: '#058E3A', textAlign: 'center' }}>
+                Найдено <b>{currentPublicPrograms.length}</b> {currentPublicPrograms.length === 1 ? 'программа' : 
+                  currentPublicPrograms.length >= 2 && currentPublicPrograms.length <= 4 ? 'программы' : 'программ'}
+                </div>
+              </ScrollReveal>
+            )
+          }
+          <FiltersContainer>
+            <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+              <option value="all">Все типы</option>
+              <option value="Оздоровление">Оздоровление</option>
+              <option value="Сила">Сила</option>
+              <option value="Выносливость">Выносливость</option>
+              <option value="Укрепление мышечного корсета">Укрепление мышечного корсета</option>
+              <option value="Комбинированная">Комбинированная</option>
+            </Select>
+
+            <Select value={selectedDuration} onChange={(e) => setSelectedDuration(e.target.value)}>
+              <option value="all">Все длительности</option>
+              <option value="7">7 дней</option>
+              <option value="30">30 дней</option>
+              <option value="90">90 дней</option>
+            </Select>
+
+            <SearchInput
+              type="text"
+              placeholder="Поиск по названию..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </FiltersContainer>
+        </ScrollReveal>
       )}
 
       {(activeTab === 'public' || userRole !== 'trainer') && (
@@ -322,7 +489,7 @@ const ProgramList: React.FC = () => {
             <EmptyMessage>Нет доступных программ тренировок</EmptyMessage>
           )}
 
-          {totalPublicPages >= 1 && (
+          {totalPublicPages > 1 && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPublicPages}
@@ -359,7 +526,7 @@ const ProgramList: React.FC = () => {
             </ScrollReveal>
           )}
 
-          {totalMyPages >= 1 && (
+          {totalMyPages > 1 && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalMyPages}

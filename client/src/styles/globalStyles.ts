@@ -7,6 +7,10 @@ export const GlobalStyles = createGlobalStyle`
         box-sizing: border-box;
     }
 
+    html {
+        overflow-y: scroll;
+    }
+
     body {
         font-family: "Exo 2", sans-serif;
         font-optical-sizing: auto;
