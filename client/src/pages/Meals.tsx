@@ -26,6 +26,14 @@ const Title = styled.h1`
   @media (max-width: 768px) {
     font-size: 1.8rem;
   }
+
+  @media (max-width: 500px) {
+    font-size: 1.5rem;
+  }
+
+  @media (max-width: 400px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const Meals: React.FC = () => {
@@ -37,7 +45,7 @@ const Meals: React.FC = () => {
 
   return (
     <Container>
-      <Title>Дневник питания</Title>
+      <ScrollReveal><Title>Дневник питания</Title></ScrollReveal>
       <ScrollReveal><AddMeal onMealAdded={handleMealAdded} /></ScrollReveal>
       <MealList refresh={refresh} />
     </Container>

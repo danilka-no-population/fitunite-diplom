@@ -26,6 +26,14 @@ const Title = styled.h1`
   @media (max-width: 768px) {
     font-size: 1.8rem;
   }
+
+  @media (max-width: 500px) {
+    font-size: 1.5rem;
+  }
+
+  @media (max-width: 400px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const Workouts: React.FC = () => {
@@ -37,8 +45,8 @@ const Workouts: React.FC = () => {
 
   return (
     <Container>
-      <Title>Дневник тренировок</Title>
-      <ScrollReveal><AddWorkout onWorkoutAdded={handleWorkoutAdded} /></ScrollReveal>
+      <ScrollReveal delay={0.05}><Title>Дневник тренировок</Title></ScrollReveal>
+      <ScrollReveal delay={0.1}><AddWorkout onWorkoutAdded={handleWorkoutAdded} /></ScrollReveal>
       <WorkoutList refresh={refresh} />
     </Container>
   );

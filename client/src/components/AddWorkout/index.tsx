@@ -85,7 +85,7 @@ const Button = styled.button`
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: clamp(0.8rem, 1.5vw, 1rem);
+  font-size: clamp(0.7rem, 4.5vw, 1rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -135,7 +135,7 @@ const RemoveButton = styled.button`
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
