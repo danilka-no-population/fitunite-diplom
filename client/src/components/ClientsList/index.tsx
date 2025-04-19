@@ -3,62 +3,132 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
 import { Link } from 'react-router-dom';
+import ScrollReveal from '../ScrollReveal';
 
 const Container = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
   padding: 20px;
+`;
+
+const Title = styled.h1`
+  color: #05396B;
+  font-size: 2rem;
+  margin-bottom: 20px;
+
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+  }
+
+  @media (max-width: 500px) {
+    font-size: 1.5rem;
+  }
+
+  @media (max-width: 400px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const Tabs = styled.div`
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e9ff;
 `;
 
-const Tab = styled.button<{ active: string }>`
-  padding: 10px 20px;
-  margin-right: 10px;
-  background-color: ${(props) => (props.active === 'true' ? '#007bff' : '#f9f9f9')};
-  color: ${(props) => (props.active === 'true' ? '#fff' : '#333')};
-  border: 1px solid #ccc;
-  border-radius: 5px;
+const Tab = styled.button<{ active: boolean }>`
+  padding: 12px 24px;
+  background-color: transparent;
+  border: none;
+  border-bottom: ${props => props.active ? '3px solid #058E3A' : 'none'};
   cursor: pointer;
-  transition: background-color 0.2s;
-
+  font-weight: ${props => props.active ? '600' : 'normal'};
+  color: ${props => props.active ? '#05396B' : '#666'};
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  width: 50%;
+  
   &:hover {
-    background-color: ${(props) => (props.active === 'true' ? '#0056b3' : '#eee')};
+    color: #05396B;
+  }
+
+  @media (max-width: 375px){
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 340px){
+    font-size: 0.8rem;
   }
 `;
 
 const SearchInput = styled.input`
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-bottom: 20px;
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
   width: 100%;
-  max-width: 400px;
-`;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  
+  &:focus {
+    border-color: #5CDB94;
+    background-color: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(92, 219, 148, 0.2);
+  }
+  
+  &::placeholder {
+    color: #999;
+  }
 
-const ClientCard = styled.div`
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 15px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #f9f9f9;
+  @media (max-width: 400px){
+    font-size: 0.9rem;
   }
 `;
 
+const ClientCard = styled.div`
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+
+  @media (max-width: 550px){
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+`;
+
+const ClientLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  text-decoration: none;
+`;
+
 const Avatar = styled.img`
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  margin-right: 15px;
+  margin-right: 20px;
+  object-fit: cover;
 `;
 
 const ClientInfo = styled.div`
@@ -67,87 +137,110 @@ const ClientInfo = styled.div`
 
 const ClientName = styled.h3`
   margin: 0;
-  font-size: 18px;
+  color: #05396B;
+  font-size: 1.2rem;
 `;
 
 const ClientUsername = styled.p`
-  margin: 0;
-  color: #555;
+  margin: 5px 0 5px 0;
+  color: #666;
+  font-size: 0.9rem;
 `;
 
-const AddButton = styled.button`
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: #fff;
+const ActionButton = styled.button<{ variant: 'add' | 'remove' }>`
+  padding: 10px 20px;
+  background-color: ${props => props.variant === 'add' ? '#058E3A' : '#A80003'};
+  color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-
+  transition: all 0.3s ease;
+  min-width: 180px;
+  
   &:hover {
-    background-color: #218838;
+    background-color: ${props => props.variant === 'add' ? '#046b2d' : '#8a0002'};
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 550px) {
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    margin-top: 20px;
   }
 `;
 
-const RemoveButton = styled.button`
-  padding: 8px 16px;
-  background-color: #dc3545;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 1.1rem;
+`;
 
-  &:hover {
-    background-color: #c82333;
+const ClientCount = styled.div`
+  font-size: 1rem;
+  color: #05396B;
+  margin-bottom: 15px;
+  font-weight: 500;
+
+  @media (max-width: 400px) {
+    font-size: 0.9rem;
   }
 `;
 
 const ClientsList: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
-  const [myClients, setMyClients] = useState<Set<number>>(new Set()); // Храним ID клиентов тренера
+  const [myClients, setMyClients] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'my-clients' | 'find-client'>('my-clients');
   const [myClientsSearch, setMyClientsSearch] = useState('');
-
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchClients = async () => {
+      setLoading(true);
       try {
         if (activeTab === 'my-clients') {
-          // Загружаем только список клиентов тренера
           const response = await api.get('/profile/my-clients');
-  
-          // Добавляем флаг isClient: true для всех загруженных клиентов
           const updatedClients = response.data.map((client: any) => ({
             ...client,
-            isClient: true, // Эти пользователи точно клиенты тренера
+            isClient: true,
           }));
-  
           setClients(updatedClients);
-          setMyClients(new Set(response.data.map((client: any) => client.id))); // Сохраняем их ID
+          setMyClients(new Set(response.data.map((client: any) => client.id)));
         } else {
-          // Загружаем всех пользователей
-          const allClientsResponse = await api.get('/profile/all-clients');
-          const myClientsResponse = await api.get('/profile/my-clients');
-  
+          const [allClientsResponse, myClientsResponse] = await Promise.all([
+            api.get('/profile/all-clients'),
+            api.get('/profile/my-clients')
+          ]);
+
           const myClientsSet = new Set(myClientsResponse.data.map((client: any) => client.id));
-  
-          // Отмечаем, какие клиенты уже принадлежат тренеру
           const updatedClients = allClientsResponse.data.map((client: any) => ({
             ...client,
             isClient: myClientsSet.has(client.id),
           }));
-  
+
           setClients(updatedClients);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
           setMyClients(myClientsSet);
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
-  
+
     fetchClients();
+    setMyClientsSearch('')
   }, [activeTab]);
   
 
@@ -187,10 +280,8 @@ const ClientsList: React.FC = () => {
   
       setClients((prevClients) => {
         if (activeTab === 'my-clients') {
-          // Если мы в разделе "Список моих клиентов" — убираем пользователя из списка
           return prevClients.filter((client) => client.id !== clientId);
         } else {
-          // Если в разделе "Найти клиента" — просто меняем кнопку
           return prevClients.map((client) =>
             client.id === clientId ? { ...client, isClient: false } : client
           );
@@ -199,66 +290,110 @@ const ClientsList: React.FC = () => {
   
       setMyClients((prev) => {
         const updatedClients = new Set(prev);
-        updatedClients.delete(clientId); // Удаляем из множества клиентов тренера
+        updatedClients.delete(clientId);
         return updatedClients;
       });
-  
     } catch (error) {
       console.error(error);
     }
   };
-  
-  
 
-  const filteredClients = clients.filter(client =>
-    client.username.toLowerCase().includes(myClientsSearch.toLowerCase())
-  );
-  
-  
+  // const filteredClients = clients.filter(client =>
+  //   client.username.toLowerCase().includes(
+  //     (activeTab === 'my-clients' ? myClientsSearch : searchQuery).toLowerCase()
+  //   )
+  // );
+
+  const filteredClients = clients.filter(client => {
+    const searchValue = (activeTab === 'my-clients' ? myClientsSearch : searchQuery).toLowerCase();
+    return (
+      client.username.toLowerCase().includes(searchValue) ||
+      client.fullname.toLowerCase().includes(searchValue)
+    );
+  });
 
   return (
     <Container>
-      <h1>My Clients</h1>
-      <Tabs>
-        <Tab active={activeTab === 'my-clients' ? 'true' : 'false'} onClick={() => setActiveTab('my-clients')}>
-          Список моих клиентов
-        </Tab>
-        <Tab active={activeTab === 'find-client' ? 'true' : 'false'} onClick={() => setActiveTab('find-client')}>
-          Найти клиента
-        </Tab>
-      </Tabs>
-      {activeTab === 'find-client' && (
-        <SearchInput
-          type="text"
-          placeholder="Найти клиента..."
-          value={searchQuery}
-          onChange={handleSearch}
-        />
+      <ScrollReveal>
+        <Title>Мои клиенты</Title>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.1}>
+        <Tabs>
+          <Tab 
+            active={activeTab === 'my-clients'} 
+            onClick={() => setActiveTab('my-clients')}
+          >
+            Мои клиенты
+          </Tab>
+          <Tab 
+            active={activeTab === 'find-client'} 
+            onClick={() => setActiveTab('find-client')}
+          >
+            Найти клиента
+          </Tab>
+        </Tabs>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.2}>
+  {(activeTab === 'my-clients' ? myClientsSearch : searchQuery).trim() !== '' && (
+    <ClientCount style={{ marginBottom: '30px', fontSize: '1.2rem', fontWeight: '400', color: '#058E3A', textAlign: 'center' }}>
+      Найдено <b>{filteredClients.length}</b> {filteredClients.length === 1 ? 'клиент' : filteredClients.length < 5 ? 'клиента' : 'клиентов'}
+    </ClientCount>
+  )}
+  <SearchInput
+    type="text"
+    placeholder={activeTab === 'my-clients' 
+      ? "Поиск среди моих клиентов..." 
+      : "Найти клиента по имени или логину..."}
+    value={activeTab === 'my-clients' ? myClientsSearch : searchQuery}
+    onChange={activeTab === 'my-clients' 
+      ? (e) => setMyClientsSearch(e.target.value)
+      : handleSearch}
+  />
+</ScrollReveal>
+
+      {loading ? (
+        <EmptyMessage>Загрузка...</EmptyMessage>
+      ) : filteredClients.length === 0 ? (
+        <EmptyMessage>
+          {activeTab === 'my-clients' 
+            ? "У вас пока нет клиентов" 
+            : "Клиенты не найдены"}
+        </EmptyMessage>
+      ) : (
+        filteredClients.map((client, index) => (
+          <ScrollReveal key={client.id} delay={0.3 + index * 0.05}>
+            <ClientCard>
+              <ClientLink to={`/profile/${client.id}`}>
+                <Avatar 
+                  src={client.avatar || 'http://localhost:5000/uploads/default.png'} 
+                  alt={client.fullname || client.username} 
+                />
+                <ClientInfo>
+                  <ClientName>{client.fullname || '@' + client.username}</ClientName>
+                  <ClientUsername>@{client.username}</ClientUsername>
+                </ClientInfo>
+              </ClientLink>
+              {client.isClient ? (
+                <ActionButton 
+                  variant="remove" 
+                  onClick={() => handleRemoveClient(client.id)}
+                >
+                  Удалить из клиентов
+                </ActionButton>
+              ) : (
+                <ActionButton 
+                  variant="add" 
+                  onClick={() => handleAddClient(client.id)}
+                >
+                  Добавить клиента
+                </ActionButton>
+              )}
+            </ClientCard>
+          </ScrollReveal>
+        ))
       )}
-      {activeTab === 'my-clients' && (
-        <SearchInput
-            type="text"
-            placeholder="Поиск среди моих клиентов..."
-            value={myClientsSearch}
-            onChange={(e) => setMyClientsSearch(e.target.value)}
-        />
-        )}
-      {filteredClients.map((client) => (
-        <ClientCard key={client.id}>
-            <Link to={`/profile/${client.id}`} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <Avatar src={client.avatar || 'http://localhost:5000/uploads/default.png'} alt="Avatar" />
-            <ClientInfo>
-                <ClientName>{client.fullname || client.username}</ClientName>
-                <ClientUsername>@{client.username}</ClientUsername>
-            </ClientInfo>
-            </Link>
-            {client.isClient ? (
-            <RemoveButton onClick={() => handleRemoveClient(client.id)}>Remove from my clients</RemoveButton>
-            ) : (
-                <AddButton onClick={() => handleAddClient(client.id)}>Add Client</AddButton>
-            )}
-        </ClientCard>
-        ))}
     </Container>
   );
 };
