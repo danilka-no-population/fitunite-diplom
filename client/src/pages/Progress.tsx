@@ -281,7 +281,7 @@ export const ProgressCharts: React.FC<{ userId?: number }> = ({ userId }) => {
         </PeriodSelector>
       </ScrollReveal>
 
-      <ScrollReveal delay={0.2}>
+      <ScrollReveal delay={0.15}>
         <ChartContainer>
           <ChartTitle>Масса тела</ChartTitle>
           {filteredMetrics.length > 0 ? (
@@ -336,7 +336,7 @@ export const ProgressCharts: React.FC<{ userId?: number }> = ({ userId }) => {
       </ScrollReveal>
 
       {Object.entries(filteredCategories).map(([category, data], index) => (
-        <ScrollReveal key={category} delay={0.3 + index * 0.05}>
+        <ScrollReveal key={category} delay={0.10 + index * 0.05}>
           <ChartContainer>
             <ChartTitle>{category}</ChartTitle>
             {data.length > 0 ? (
