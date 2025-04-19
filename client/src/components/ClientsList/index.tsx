@@ -241,18 +241,37 @@ const ClientsList: React.FC = () => {
 
     fetchClients();
     setMyClientsSearch('')
+    setSearchQuery('')
   }, [activeTab]);
   
+
+  // const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const query = e.target.value;
+  //   setSearchQuery(query);
+
+  //   try {
+  //     const response = await api.get(`/profile/search-clients?query=${query}`);
+  //     const updatedClients = response.data.map((client: any) => ({
+  //       ...client,
+  //       isClient: myClients.has(client.id),
+  //     }));
+  //     setClients(updatedClients);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
 
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-
+  
     try {
       const response = await api.get(`/profile/search-clients?query=${query}`);
       const updatedClients = response.data.map((client: any) => ({
         ...client,
         isClient: myClients.has(client.id),
+        fullname: client.fullname || '', // Убедиться, что fullname всегда существует
+        username: client.username || '', // Убедиться, что username всегда существует
       }));
       setClients(updatedClients);
     } catch (error) {
@@ -307,8 +326,8 @@ const ClientsList: React.FC = () => {
   const filteredClients = clients.filter(client => {
     const searchValue = (activeTab === 'my-clients' ? myClientsSearch : searchQuery).toLowerCase();
     return (
-      client.username.toLowerCase().includes(searchValue) ||
-      client.fullname.toLowerCase().includes(searchValue)
+      (client.username && client.username.toLowerCase().includes(searchValue)) ||
+      (client.fullname && client.fullname.toLowerCase().includes(searchValue))
     );
   });
 
@@ -357,14 +376,14 @@ const ClientsList: React.FC = () => {
         <EmptyMessage>Загрузка...</EmptyMessage>
       ) : filteredClients.length === 0 ? (
         <EmptyMessage>
-          {activeTab === 'my-clients' 
+          {activeTab === 'my-clients' && searchQuery.length !== 0
             ? "У вас пока нет клиентов" 
             : "Клиенты не найдены"}
         </EmptyMessage>
       ) : (
         filteredClients.map((client, index) => (
           <ScrollReveal key={client.id} delay={0.3 + index * 0.05}>
-            <ClientCard>
+            {/* <ClientCard>
               <ClientLink to={`/profile/${client.id}`}>
                 <Avatar 
                   src={client.avatar || 'http://localhost:5000/uploads/default.png'} 
@@ -390,7 +409,34 @@ const ClientsList: React.FC = () => {
                   Добавить клиента
                 </ActionButton>
               )}
-            </ClientCard>
+            </ClientCard> */}
+            <ClientCard>
+            <ClientLink to={`/profile/${client.id}`}>
+              <Avatar 
+                src={client.avatar || 'http://localhost:5000/uploads/default.png'} 
+                alt={client.fullname || client.username || 'Неизвестный клиент'} 
+              />
+              <ClientInfo>
+                <ClientName>{client.fullname || '@' + client.username || 'Неизвестный клиент'}</ClientName>
+                <ClientUsername>{client.username ? '@' + client.username : ''}</ClientUsername>
+              </ClientInfo>
+            </ClientLink>
+            {client.isClient ? (
+              <ActionButton 
+                variant="remove" 
+                onClick={() => handleRemoveClient(client.id)}
+              >
+                Удалить из клиентов
+              </ActionButton>
+            ) : (
+              <ActionButton 
+                variant="add" 
+                onClick={() => handleAddClient(client.id)}
+              >
+                Добавить клиента
+              </ActionButton>
+            )}
+          </ClientCard>
           </ScrollReveal>
         ))
       )}

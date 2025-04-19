@@ -7,7 +7,7 @@ import ScrollReveal from '../components/ScrollReveal';
 import api from '../services/api';
 
 const Container = styled.div`
-  max-width: 1000px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px;
 `;
