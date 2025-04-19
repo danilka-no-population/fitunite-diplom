@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import api from '../services/api';
 import WorkoutList from '../components/WorkoutList';
 import MealList from '../components/MealList';
-import ProgressCharts from '../components/ProgressCharts';
+import ProgressCharts from './Progress';
 
 const Container = styled.div`
   padding: 20px;
