@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format, subDays } from 'date-fns';
 import ScrollReveal from '../components/ScrollReveal';
 import api from '../services/api';
+import Loader from '../components/Loader';
 
 const Container = styled.div`
   max-width: 800px;
@@ -251,7 +252,8 @@ export const ProgressCharts: React.FC<{ userId?: number }> = ({ userId }) => {
   if (loading) {
     return (
       <Container>
-        <NoDataMessage>Загрузка данных...</NoDataMessage>
+        {/* <NoDataMessage>Загрузка данных...</NoDataMessage> */}
+        <Loader/>
       </Container>
     );
   }

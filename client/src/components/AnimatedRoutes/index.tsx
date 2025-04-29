@@ -20,6 +20,7 @@ import ClientsList from '../ClientsList';
 import ClientProfile from '../../pages/ClientProfile';
 import { PageWrapper } from '../PageWrapper';
 import ScrollToTop from '../ScrollToTop';
+import NotFound from '../../pages/NotFound';
 
 const pageTransition = {
   initial: { opacity: 0, y: 20 },
@@ -63,6 +64,8 @@ const AnimatedRoutes: React.FC = () => {
               <Route path="/my-clients" element={<PageWrapper><ClientsList /></PageWrapper>} />
               <Route path="/profile/:id" element={<PageWrapper><ClientProfile /></PageWrapper>} />
             </Route>
+
+            <Route path="*" element={<PageWrapper><NotFound/></PageWrapper>} />
           </Route>
         </Routes>
       </motion.div>
