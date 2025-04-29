@@ -493,6 +493,7 @@ const ProfilePage: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [trainerId, setTrainerId] = useState<number | ''>('');
   const [specialization, setSpecialization] = useState('');
+  const [height, setHeight] = useState<number | null>(null);
   const [metrics, setMetrics] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<any[]>([]);
   const [avatar, setAvatar] = useState('');
@@ -520,6 +521,7 @@ const ProfilePage: React.FC = () => {
         setTrainerId(response.data.trainer_id || '');
         setSpecialization(response.data.specialization || '');
         setAvatar(response.data.avatar || '');
+        setHeight(response.data.height || null);
 
         const metricsResponse = await api.get('/profile/metrics');
         const sortedMetrics = metricsResponse.data.sort((a: any, b: any) => {
@@ -541,6 +543,7 @@ const ProfilePage: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setIsModalOpen(false);
+        setModalWeight('')
       }
     };
 
@@ -577,30 +580,31 @@ const ProfilePage: React.FC = () => {
     return '';
   };
 
-  const validateMetrics = () => {
+  const validateMetrics = (heightVal: string, weightVal: string) => {
     const newErrors: Record<string, string> = {};
     
-    if (modalHeight) {
-      const heightNum = parseFloat(modalHeight);
-      if (isNaN(heightNum) || heightNum < 100 || heightNum > 240) {
-        newErrors.height = 'Рост должен быть от 100 до 240 см';
-      }
+    // Проверяем рост только если он не установлен в профиле
+    if (!height && heightVal) {
+        const heightNum = parseFloat(heightVal);
+        if (isNaN(heightNum) || heightNum < 100 || heightNum > 220) {
+            newErrors.height = 'Рост должен быть от 100 до 220 см';
+        }
     }
     
-    if (modalWeight) {
-      const weightNum = parseFloat(modalWeight);
-      if (isNaN(weightNum) || weightNum < 10 || weightNum > 300) {
-        newErrors.weight = 'Вес должен быть от 10 до 300 кг';
-      }
+    if (weightVal) {
+        const weightNum = parseFloat(weightVal);
+        if (isNaN(weightNum) || weightNum < 10 || weightNum > 300) {
+            newErrors.weight = 'Вес должен быть от 10 до 300 кг';
+        }
     }
     
-    if (!modalHeight && !modalWeight) {
-      newErrors.general = 'Введите хотя бы одно значение';
+    if (!height && !heightVal && !weightVal) {
+        newErrors.general = 'Введите хотя бы одно значение';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+};
 
   const handleSave = async () => {
     const newErrors: Record<string, string> = {};
@@ -610,6 +614,10 @@ const ProfilePage: React.FC = () => {
     
     const phoneError = validatePhoneNumber(phoneNumber);
     if (phoneError) newErrors.phone = phoneError;
+
+    // Добавляем валидацию роста
+    const heightError = validateHeight(height);
+    if (heightError) newErrors.height = heightError;
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -628,7 +636,8 @@ const ProfilePage: React.FC = () => {
         phone_number: phoneNumber.trim() || null,
         trainer_id: trainerId || null,
         specialization: specialization.trim() || null,
-        avatar
+        avatar,
+        height: height || null
       });
       
       setUser(response.data);
@@ -642,6 +651,16 @@ const ProfilePage: React.FC = () => {
         setErrors({});
       }, 5000);
     }
+  };
+
+  const validateHeight = (heightValue: number | null): string => {
+    if (heightValue === null) return ''; // Пустое значение - допустимо
+    
+    if (heightValue < 100 || heightValue > 220) {
+      return 'Рост должен быть от 100 до 220 см';
+    }
+    
+    return '';
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -684,16 +703,18 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleAddMetrics = async () => {
-    if (!validateMetrics()) {
-      setTimeout(() => {
-        setErrors({});
-      }, 5000);
-      return;
+    const finalHeight = height ? height.toString() : modalHeight;
+    
+    if (!validateMetrics(finalHeight, modalWeight)) {
+        setTimeout(() => {
+            setErrors({});
+        }, 5000);
+        return;
     }
 
     try {
       await api.post('/profile/metrics', {
-        height: modalHeight ? parseFloat(modalHeight) : null,
+        height: finalHeight ? parseFloat(finalHeight) : null,
         weight: modalWeight ? parseFloat(modalWeight) : null,
       });
       
@@ -739,11 +760,16 @@ const ProfilePage: React.FC = () => {
             <Field>
               <Label>Рост (см)</Label>
               <Input
-                type="number"
-                placeholder="100-240 см"
-                value={modalHeight}
-                onChange={(e) => setModalHeight(e.target.value.replace(/[^0-9.]/g, ''))}
-                className={errors.height ? 'error' : ''}
+                  type="number"
+                  placeholder="100-220 см"
+                  value={height ? height.toString() : modalHeight}
+                  onChange={(e) => {
+                      if (!height) { // Разрешаем изменение только если рост не установлен в профиле
+                          setModalHeight(e.target.value.replace(/[^0-9]/g, ''));
+                      }
+                  }}
+                  disabled={!!height} // Блокируем поле, если рост установлен в профиле
+                  className={errors.height ? 'error' : ''}
               />
               {errors.height && <ErrorMessage>{errors.height}</ErrorMessage>}
             </Field>
@@ -829,7 +855,7 @@ const ProfilePage: React.FC = () => {
           
           {isEditing ? (
             <>
-              <Field>
+              {/* <Field>
                 <Label>Имя пользователя</Label>
                 <Value>{user.username}</Value>
               </Field>
@@ -837,7 +863,7 @@ const ProfilePage: React.FC = () => {
               <Field>
                 <Label>Email</Label>
                 <Value>{user.email}</Value>
-              </Field>
+              </Field> */}
               
               <Field>
                 <Label>ФИО</Label>
@@ -868,23 +894,30 @@ const ProfilePage: React.FC = () => {
                 />
                 {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
               </Field>
-              
-              {/* {user.role === 'client' && (
+
+              {user.role === 'client' && (
                 <Field>
-                  <Label>Тренер</Label>
-                  <Select
-                    value={trainerId}
-                    onChange={(e) => setTrainerId(Number(e.target.value))}
-                  >
-                    <option value="">Выберите тренера</option>
-                    {trainers.map((trainer) => (
-                      <option key={trainer.id} value={trainer.id}>
-                        {trainer.username}
-                      </option>
-                    ))}
-                  </Select>
+                  <Label>Рост (см)</Label>
+                  <Input
+                    type="number"
+                    placeholder="100-220 см"
+                    value={height !== null ? height.toString() : ''}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                            setHeight(null);
+                        } else {
+                            const num = parseInt(value);
+                            if (!isNaN(num)) {
+                                setHeight(num);
+                            }
+                        }
+                    }}
+                    className={errors.height ? 'error' : ''}
+                />
+                {errors.height && <ErrorMessage>{errors.height}</ErrorMessage>}
                 </Field>
-              )} */}
+              )}
               
               {user.role === 'trainer' && (
                 <Field>
@@ -899,7 +932,10 @@ const ProfilePage: React.FC = () => {
               )}
               
               <ProfileActions>
-                <Button className="secondary" onClick={() => setIsEditing(false)}>
+                <Button className="secondary" onClick={() => {
+                  setIsEditing(false)
+                  setHeight(null)
+                }}>
                   Отмена
                 </Button>
                 <Button className="primary" onClick={handleSave}>
@@ -943,16 +979,23 @@ const ProfilePage: React.FC = () => {
                 </Field>
               )}
 
-              <Field>
-                <Label>Дата регистрации</Label>
-                <Value>
-                  {new Date(user.created_at).toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </Value>
-              </Field>
+            {user.role === 'client' ? (
+                <Field>
+                    <Label>Рост</Label>
+                    <Value>{height ? `${height} см` : 'Вы пока не добавляли рост'}</Value>
+                </Field>
+            ) : (
+                <Field>
+                    <Label>Дата регистрации</Label>
+                    <Value>
+                        {new Date(user.created_at).toLocaleDateString('ru-RU', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        })}
+                    </Value>
+                </Field>
+            )}
             </FieldRow>
           )}
 

@@ -40,11 +40,32 @@ class ProfileController {
     }
   }
 
-  // Обновление данных пользователя
+  // // Обновление данных пользователя
+  // static async updateProfile(req: Request, res: Response) {
+  //   //@ts-ignore
+  //   const userId = req.user.id;
+  //   const { fullname, phone_number, trainer_id = userId, specialization, avatar } = req.body;
+  
+  //   try {
+  //     const updatedUser = await UserModel.updateProfile(userId, {
+  //       //@ts-ignore
+  //       fullname,
+  //       phone_number,
+  //       trainer_id,
+  //       specialization,
+  //       avatar
+  //     });
+  //     res.status(200).json(updatedUser);
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ message: 'Server error' });
+  //   }
+  // }
+
   static async updateProfile(req: Request, res: Response) {
     //@ts-ignore
     const userId = req.user.id;
-    const { fullname, phone_number, trainer_id = userId, specialization, avatar } = req.body;
+    const { fullname, phone_number, trainer_id = userId, specialization, avatar, height } = req.body;
   
     try {
       const updatedUser = await UserModel.updateProfile(userId, {
@@ -53,35 +74,15 @@ class ProfileController {
         phone_number,
         trainer_id,
         specialization,
-        avatar
+        avatar,
+        height: height ? parseInt(height) : null
       });
       res.status(200).json(updatedUser);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error' });
     }
-  }
-  // static async updateProfile(req: Request, res: Response) {
-  //   //@ts-ignore
-  //   const userId = req.user.id;
-  //   const { fullname, avatar, phone_number, trainer_id, specialization } = req.body;
-
-  //   try {
-  //     const updatedUser = await UserModel.update(userId, {
-  //       //@ts-ignore
-  //       fullname,
-  //       avatar,
-  //       phone_number,
-  //       trainer_id,
-  //       specialization,
-  //     });
-
-  //     res.status(200).json(updatedUser);
-  //   } catch (error) {
-  //     console.error(error);
-  //     res.status(500).json({ message: 'Server error' });
-  //   }
-  // }
+}
 
 // Загрузка аватара
 static async uploadAvatar(req: Request, res: Response) {
