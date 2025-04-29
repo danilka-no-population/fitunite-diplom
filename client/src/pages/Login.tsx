@@ -24,8 +24,18 @@ const AuthCard = styled.div`
 
 const Title = styled.h1`
     color: #05396B;
-    font-size: 2.5rem;
+    font-size: 2.3rem;
     margin-bottom: 10px;
+
+    @media (max-width: 450px){
+        font-size: 1.8rem;
+    }
+    @media (max-width: 350px){
+        font-size: 1.5rem;
+    }
+    @media (max-width: 320px){
+        font-size: 1.3rem;
+    }
 `;
 
 const Subtitle = styled.p`
@@ -55,7 +65,7 @@ const Login: React.FC = () => {
     return (
         <LoginContainer>
             <AuthCard>
-                <Title>Привет!</Title>
+                <Title>Вход в аккаунт</Title>
                 <Subtitle>Войдите в свой аккаунт, чтобы продолжить</Subtitle>
                 <AuthForm isLogin />
                 <SwitchAuthText>

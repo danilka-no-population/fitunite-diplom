@@ -7,7 +7,7 @@ const RegisterContainer = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: 90vh;
     background-color: #EDF5E0;
     padding: 20px;
 `;
@@ -65,7 +65,7 @@ const Register: React.FC = () => {
     return (
         <RegisterContainer>
             <AuthCard>
-                <Title>Давай к нам!</Title>
+                <Title>Регистрация</Title>
                 <Subtitle>Создайте аккаунт, чтобы начать свой фитнес-путь</Subtitle>
                 <AuthForm />
                 <SwitchAuthText>

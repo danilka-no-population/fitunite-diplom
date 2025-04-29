@@ -120,7 +120,7 @@ const AuthForm: React.FC<{ isLogin?: boolean }> = ({ isLogin = false }) => {
 
     return (
         <Form onSubmit={handleSubmit}>
-            <FormTitle>{isLogin ? 'Вход в аккаунт' : 'Регистрация'}</FormTitle>
+            {/* <FormTitle>{isLogin ? 'Вход в аккаунт' : 'Регистрация'}</FormTitle> */}
             
             {!isLogin ? (
                 <>
