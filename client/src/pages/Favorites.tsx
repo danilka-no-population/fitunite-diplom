@@ -5,6 +5,7 @@ import api from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import ScrollReveal from '../components/ScrollReveal';
 import Pagination from '../components/Pagination';
+import Loader from '../components/Loader';
 
 const Container = styled.div`
   max-width: 800px;
@@ -325,7 +326,7 @@ const Favorites: React.FC = () => {
         <Title>Избранное</Title>
       </ScrollReveal>
 
-      {loading ? null : (
+      {loading ? <Loader/> : (
   <>
     {favorites.length > 0 && (
       <ScrollReveal delay={0.2}>

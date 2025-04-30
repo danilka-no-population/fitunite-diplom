@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import ProgressModel from '../models/Progress';
-import { subDays, subMonths } from 'date-fns';
+import { subDays, subYears, subMonths } from 'date-fns';
 
 class ProgressController {
     static async addMetric(req: Request, res: Response) {
@@ -37,47 +37,53 @@ class ProgressController {
     }
 
     static async getCategoryProgress(req: Request, res: Response) {
-        const { period } = req.query; // Получаем период из query параметра
+        const { period } = req.query;
         //@ts-ignore
         const user_id = req.user.id;
-
+    
         try {
             const exercises = await ProgressModel.getUserWorkoutExercises(user_id);
-
+    
             // Устанавливаем дату фильтрации в зависимости от периода
             let startDate: Date;
-            if (period === 'week') {
-                startDate = subDays(new Date(), 7); // Последние 7 дней
-            } else if (period === 'month') {
-                startDate = subMonths(new Date(), 1); // Последний месяц
+            if (period === '3months') {
+                startDate = subMonths(new Date(), 3);
+            } else if (period === 'year') {
+                startDate = subYears(new Date(), 1);
             } else {
                 startDate = subMonths(new Date(), 1); // По умолчанию за месяц
             }
-
-            const categoryProgress: Record<string, number[]> = {};
-
+    
+            const categoryProgress: Record<string, any[]> = {};
+    
             exercises.forEach(exercise => {
-                const { category, sets, reps, weight, duration, distance, date, type } = exercise;
-
+                const { category, sets, reps, weight, duration, distance, date, type, exercise_id } = exercise;
+    
                 // Проверяем, попадает ли дата в выбранный период
                 const exerciseDate = new Date(date);
-                if (exerciseDate < startDate) return; // Пропускаем упражнения, если дата меньше стартовой
-
+                if (exerciseDate < startDate) return;
+    
                 if (!categoryProgress[category]) {
                     categoryProgress[category] = [];
                 }
-
+    
                 if (type === 'strength') {
                     const volume = (sets || 0) * (reps || 0) * (weight || 0);
-                    //@ts-ignore
-                    categoryProgress[category].push({ date, volume });
+                    categoryProgress[category].push({ 
+                        date, 
+                        volume,
+                        exerciseId: exercise_id 
+                    });
                 } else if (type === 'cardio') {
                     const speed = (distance || 0) / parseFloat(duration || '1');
-                    //@ts-ignore
-                    categoryProgress[category].push({ date, speed });
+                    categoryProgress[category].push({ 
+                        date, 
+                        speed,
+                        exerciseId: exercise_id 
+                    });
                 }
             });
-
+    
             res.status(200).json(categoryProgress);
         } catch (error) {
             console.error(error);
@@ -101,71 +107,87 @@ class ProgressController {
         }
 
             // Получение прогресса клиента
-    static async getClientProgress(req: Request, res: Response) {
-        const { user_id } = req.params;
+            static async getClientProgress(req: Request, res: Response) {
+                const { user_id } = req.params;
+            
+                try {
+                    const { metrics, exercises } = await ProgressModel.getClientProgress(Number(user_id));
+            
+                    // Обработка упражнений для категорий
+                    const categoryProgress: Record<string, any[]> = {};
+            
+                    exercises.forEach(exercise => {
+                        const { category, sets, reps, weight, duration, distance, date, type, exercise_id } = exercise;
+            
+                        if (!categoryProgress[category]) {
+                            categoryProgress[category] = [];
+                        }
+            
+                        if (type === 'strength') {
+                            const volume = (sets || 0) * (reps || 0) * (weight || 0);
+                            categoryProgress[category].push({ 
+                                date, 
+                                volume,
+                                exerciseId: exercise_id 
+                            });
+                        } else if (type === 'cardio') {
+                            const speed = (distance || 0) / parseFloat(duration || '1');
+                            categoryProgress[category].push({ 
+                                date, 
+                                speed,
+                                exerciseId: exercise_id 
+                            });
+                        }
+                    });
+            
+                    res.status(200).json({ metrics, categoryProgress });
+                } catch (error) {
+                    console.error(error);
+                    res.status(500).json({ message: 'Ошибка сервера' });
+                }
+            }
+            
 
+    // В ProgressController
+    static async getMyProgress(req: Request, res: Response) {
+        //@ts-ignore
+        const user_id = req.user.id;
+    
         try {
-            const { metrics, exercises } = await ProgressModel.getClientProgress(Number(user_id));
-
-            // Обработка упражнений для категорий
+            const { metrics, exercises } = await ProgressModel.getClientProgress(user_id);
+    
             const categoryProgress: Record<string, any[]> = {};
-
+    
             exercises.forEach(exercise => {
-                const { category, sets, reps, weight, duration, distance, date, type } = exercise;
-
+                const { category, sets, reps, weight, duration, distance, date, type, exercise_id } = exercise;
+    
                 if (!categoryProgress[category]) {
                     categoryProgress[category] = [];
                 }
-
+    
                 if (type === 'strength') {
                     const volume = (sets || 0) * (reps || 0) * (weight || 0);
-                    categoryProgress[category].push({ date, volume });
+                    categoryProgress[category].push({ 
+                        date, 
+                        volume,
+                        exerciseId: exercise_id 
+                    });
                 } else if (type === 'cardio') {
                     const speed = (distance || 0) / parseFloat(duration || '1');
-                    categoryProgress[category].push({ date, speed });
+                    categoryProgress[category].push({ 
+                        date, 
+                        speed,
+                        exerciseId: exercise_id 
+                    });
                 }
             });
-
+    
             res.status(200).json({ metrics, categoryProgress });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Ошибка сервера' });
         }
     }
-
-    // В ProgressController
-static async getMyProgress(req: Request, res: Response) {
-    //@ts-ignore
-    const user_id = req.user.id;
-
-    try {
-        const { metrics, exercises } = await ProgressModel.getClientProgress(user_id);
-
-        // Обработка упражнений для категорий
-        const categoryProgress: Record<string, any[]> = {};
-
-        exercises.forEach(exercise => {
-            const { category, sets, reps, weight, duration, distance, date, type } = exercise;
-
-            if (!categoryProgress[category]) {
-                categoryProgress[category] = [];
-            }
-
-            if (type === 'strength') {
-                const volume = (sets || 0) * (reps || 0) * (weight || 0);
-                categoryProgress[category].push({ date, volume });
-            } else if (type === 'cardio') {
-                const speed = (distance || 0) / parseFloat(duration || '1');
-                categoryProgress[category].push({ date, speed });
-            }
-        });
-
-        res.status(200).json({ metrics, categoryProgress });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Ошибка сервера' });
-    }
-}
 }
 
 export default ProgressController;
