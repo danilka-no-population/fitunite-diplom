@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import Modal from 'react-modal';
 import ScrollReveal from '../components/ScrollReveal';
 import Pagination from '../components/Pagination';
+import Loader from '../components/Loader';
 
 const Container = styled.div`
   max-width: 800px;
@@ -275,6 +276,136 @@ const Divider = styled.div`
   margin: 20px 0;
 `;
 
+interface ModalProps {
+  $isOpen: boolean;
+}
+
+const ModalOverlay = styled.div<ModalProps>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: ${props => props.$isOpen ? 'flex' : 'none'};
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+  animation: fadeIn 0.3s ease;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+const ModalClose = styled.button`
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+`;
+
+const SearchInput = styled.input`
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  color: #05396B;
+  flex: 2;
+  min-width: 180px;
+  width: 100%;
+  
+  &:focus {
+    border-color: #5CDB94;
+    background-color: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(92, 219, 148, 0.2);
+  }
+
+  @media (max-width: 600px){
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+`;
+
+const AssignModalContent = styled.div`
+  background-color: white;
+  border-radius: 15px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: slideUp 0.3s ease;
+
+  @media (max-width: 500px) {
+    width: 95%;
+    padding: 1rem;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+`;
+
+const ClientsList = styled.div`
+  flex: 1;
+  min-height: 100px;
+  margin: 1rem 0;
+  overflow: hidden;
+`;
+
+const ClientItem = styled.div<{ $isSelected: boolean }>`
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+  background-color: ${props => props.$isSelected ? '#f0f7ff' : 'white'};
+  border: 1px solid #e0e9ff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: ${props => props.$isSelected ? '#e0f0ff' : '#f9f9f9'};
+  }
+
+  @media (max-width: 500px) {
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+`;
+
+const ClientName = styled.div`
+  font-weight: 600;
+  color: #05396B;
+`;
+
+const ClientUsername = styled.div`
+  font-size: 0.8rem;
+  color: #666;
+`;
+
 Modal.setAppElement('#root');
 
 const ProgramDetail: React.FC = () => {
@@ -293,6 +424,69 @@ const ProgramDetail: React.FC = () => {
   const workoutsPerPage = 5;
   const exercisesPerPage = 5;
 
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [assignError, setAssignError] = useState('');
+  const [user, setUser] = useState<any>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const clientsPerPage = 3;
+
+  const filteredClients = clients.filter(client => 
+    client.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.fullname && client.fullname.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const indexOfLastClient = currentPage * clientsPerPage;
+  const indexOfFirstClient = indexOfLastClient - clientsPerPage;
+  const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
+  const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
+
+  const fetchClients = async () => {
+    try {
+      const response = await api.get('/profile/my-clients');
+      setClients(response.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const openAssignModal = async () => {
+    if (user?.role === 'trainer') {
+      await fetchClients();
+      setIsAssignModalOpen(true);
+      setSelectedClient(null);
+      setAssignError('');
+    }
+  };
+
+  const assignProgram = async () => {
+    if (!selectedClient) return;
+    
+    try {
+      await api.post('/assigned-programs/assign', {
+        program_id: id,
+        client_id: selectedClient.id
+      });
+      setIsAssignModalOpen(false);
+      // Можно добавить уведомление об успешном назначении
+    } catch (error: any) {
+      console.error(error);
+      setAssignError(error.response?.data?.message || 'Ошибка при назначении программы');
+    }
+  };
+
+  useEffect(() => {
+    if (assignError) {
+      const timer = setTimeout(() => {
+        setAssignError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [assignError]);
+
   useEffect(() => {
     const fetchProgram = async () => {
       try {
@@ -310,6 +504,9 @@ const ProgramDetail: React.FC = () => {
 
         const likesCountResponse = await api.get(`/programs/likes/${id}/count`);
         setLikesCount(likesCountResponse.data.likesCount);
+
+        const responseMe = await api.get('/profile');
+        setUser(responseMe.data);
 
         const token = localStorage.getItem('token');
         if (token) {
@@ -408,7 +605,7 @@ const ProgramDetail: React.FC = () => {
     return (
       <Container>
         <ScrollReveal>
-          <Title>Загрузка...</Title>
+          <Loader/>
         </ScrollReveal>
       </Container>
     );
@@ -551,8 +748,157 @@ const ProgramDetail: React.FC = () => {
           >
             {isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
           </Button>
+          {user?.role === 'trainer' && (
+            <Button 
+              color="primary" 
+              onClick={openAssignModal}
+              style={{backgroundColor: '#058E3A'}}
+            >
+              Назначить эту программу моему клиенту
+            </Button>
+          )}
         </ButtonGroup>
       </ScrollReveal>
+
+
+
+      <ScrollReveal delay={0.1}>
+        <ModalOverlay $isOpen={isAssignModalOpen} onClick={() => setIsAssignModalOpen(false)}>
+          <AssignModalContent style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+            <ModalClose onClick={() => setIsAssignModalOpen(false)}>×</ModalClose>
+            <ModalTitle></ModalTitle>
+            
+            <SearchInput
+              type="text"
+              placeholder="Поиск среди моих клиентов..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1);
+              }}
+              style={{ marginTop: '0.5rem' }}
+            />
+
+      <ClientsList>
+      {currentClients.length > 0 ? (
+        currentClients.map(client => (
+          <ClientItem 
+            key={client.id}
+            $isSelected={selectedClient?.id === client.id}
+            onClick={() => setSelectedClient(client)}
+          >
+            <ClientName>{client.fullname || `@${client.username}`}</ClientName>
+            <ClientUsername>@{client.username}</ClientUsername>
+          </ClientItem>
+        ))
+      ) : (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+          Клиенты не найдены
+        </div>
+      )}
+    </ClientsList>
+
+    {filteredClients.length > clientsPerPage && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '-0.5rem 0', fontSize: '0.8rem', fontWeight: 'bold',  }}>
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              style={{ 
+                padding: '0.2rem 1rem',
+                margin: '0 0.5rem',
+                border: 'none',
+                background: currentPage === 1 ? '#f0f0f0' : '#05396B',
+                color: currentPage === 1 ? '#999' : 'white',
+                borderRadius: '5px',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.7rem'
+              }}
+            >
+              Назад
+            </button>
+            <span style={{ padding: '0.5rem' }}>
+              {currentPage} из {totalPages}
+            </span>
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              style={{ 
+                padding: '0.2rem 1rem',
+                margin: '0 0.2rem',
+                border: 'none',
+                background: currentPage === totalPages ? '#f0f0f0' : '#05396B',
+                color: currentPage === totalPages ? '#999' : 'white',
+                borderRadius: '5px',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.7rem'
+              }}
+            >
+              Вперед
+            </button>
+          </div>
+        )}
+            
+            {/* <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {clients
+                .filter(client => 
+                  client.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (client.fullname && client.fullname.toLowerCase().includes(searchQuery.toLowerCase()))
+                )
+                .map(client => (
+                  <div 
+                    key={client.id}
+                    style={{
+                      padding: '15px',
+                      marginBottom: '10px',
+                      backgroundColor: selectedClient?.id === client.id ? '#f0f7ff' : 'white',
+                      border: '1px solid #e0e9ff',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onClick={() => setSelectedClient(client)}
+                  >
+                    <div style={{ fontWeight: '600', color: '#05396B' }}>
+                      {client.fullname || `@${client.username}`}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      @{client.username}
+                    </div>
+                  </div>
+                ))}
+            </div> */}
+            
+            {assignError && (
+              <div style={{ color: '#A80003', padding: '10px', borderRadius: '8px', margin: '1.5rem 0 -1rem 0', textAlign: 'center', fontSize: '0.8rem', backgroundColor: '#A8000320' }}>
+                {assignError}
+              </div>
+            )}
+            
+            <ModalActions>
+              <Button 
+                className="secondary" 
+                onClick={() => setIsAssignModalOpen(false)} 
+                style={{backgroundColor: '#A80003', width: '30%'}}
+              >
+                Отмена
+              </Button>
+              <Button 
+                className="primary" 
+                onClick={assignProgram}
+                disabled={!selectedClient}
+                style={{backgroundColor: '#058E3A', width: '70%'}}
+              >
+                Назначить программу
+              </Button>
+            </ModalActions>
+          </AssignModalContent>
+        </ModalOverlay>
+      </ScrollReveal>
+
+
+
 
       <ScrollReveal delay={0.4}>
         <CommentsSection>

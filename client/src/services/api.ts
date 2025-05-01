@@ -5,6 +5,11 @@ const api = axios.create({
     baseURL: 'http://localhost:5000/api',
 });
 
+export const getAssignedProgram = () => axios.get('/assigned-programs/my-program');
+export const assignProgram = (data: { program_id: number; client_id: number }) => axios.post('/assigned-programs/assign', data);
+export const unassignProgram = (data: { client_id: number }) => axios.post('/assigned-programs/unassign', data);
+export const getClientsWithPrograms = () => axios.get('/assigned-programs/clients');
+
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     // if (token) {

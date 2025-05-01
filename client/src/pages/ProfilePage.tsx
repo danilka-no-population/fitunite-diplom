@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import api from '../services/api';
 import ScrollReveal from '../components/ScrollReveal';
+import { Link } from 'react-router-dom';
 
 // Интерфейсы и типы
 interface AvatarProps {
@@ -15,6 +16,14 @@ interface MetricCardProps {
 
 interface ModalProps {
   $isOpen: boolean;
+}
+
+interface AssignedProgram {
+  id: number;
+  program_id: number;
+  program_name: string;
+  program_description?: string;
+  assigned_at: string;
 }
 
 // Стилевые компоненты
@@ -485,6 +494,43 @@ const ModalActions = styled.div`
   margin-top: 2rem;
 `;
 
+const DangerModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+
+  @media (max-width: 500px) {
+    font-size: 0.8rem;
+  }
+`;
+
+
+const ProgramCard = styled.div`
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const ProgramTitle = styled.h3`
+  color: #05396B;
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+`;
+
+const ProgramMeta = styled.p`
+  color: #666;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+`;
+
 // Основной компонент
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -503,6 +549,9 @@ const ProfilePage: React.FC = () => {
   const [modalWeight, setModalWeight] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const [assignedProgram, setAssignedProgram] = useState<AssignedProgram | null>(null);
+  const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
 
   const metricsPerPage = 4;
   const totalPages = Math.ceil(metrics.length / metricsPerPage);
@@ -550,6 +599,32 @@ const ProfilePage: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchAssignedProgram = async () => {
+      try {
+        const response = await api.get('/assigned-programs/my-program');
+        setAssignedProgram(response.data);
+      } catch (error) {
+        console.error(error);
+        setAssignedProgram(null);
+      }
+    };
+  
+    if (user?.role === 'client') {
+      fetchAssignedProgram();
+    }
+  }, [user]);
+
+  const handleUnassignProgram = async () => {
+    try {
+      await api.post('/assigned-programs/unassign', { client_id: user?.id });
+      setAssignedProgram(null);
+      setIsUnassignModalOpen(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const validateFullName = (name: string): string => {
       if (!name.trim()) return ''; // Пустая строка - нет ошибки
@@ -786,14 +861,14 @@ const ProfilePage: React.FC = () => {
               {errors.weight && <ErrorMessage>{errors.weight}</ErrorMessage>}
             </Field>
             
-            <ModalActions>
+            <DangerModalActions>
               <Button className="secondary" onClick={() => setIsModalOpen(false)}>
                 Отмена
               </Button>
               <Button className="primary" onClick={handleAddMetrics}>
                 Добавить
               </Button>
-            </ModalActions>
+            </DangerModalActions>
           </ModalContent>
         </ModalOverlay>
       </ScrollReveal>
@@ -1012,6 +1087,57 @@ const ProfilePage: React.FC = () => {
           )}
         </ProfileSection>
       </ScrollReveal>
+
+      {user?.role === 'client' && (
+  <ScrollReveal delay={0.4}>
+    <ProfileSection>
+      <SectionTitle>Программа тренировок</SectionTitle>
+      
+      {assignedProgram ? (
+        <>
+          <Link to={`/programs/${assignedProgram.program_id}`} style={{ textDecoration: 'none' }}>
+            <ProgramCard>
+              <ProgramTitle>{assignedProgram.program_name}</ProgramTitle>
+              {assignedProgram.program_description && (
+                <ProgramMeta>{assignedProgram.program_description}</ProgramMeta>
+              )}
+              <ProgramMeta>Назначена: {new Date(assignedProgram.assigned_at).toLocaleDateString('ru-RU')}</ProgramMeta>
+            </ProgramCard>
+          </Link>
+          
+          <Button 
+            className="danger" 
+            onClick={() => setIsUnassignModalOpen(true)}
+            style={{ marginTop: '15px', fontSize: '0.9rem', width: '100%'}}
+          >
+            Прекратить заниматься по этой программе
+          </Button>
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          Пока что нет назначенной программы тренировок
+        </div>
+      )}
+          </ProfileSection>
+        </ScrollReveal>
+      )}
+
+<ModalOverlay $isOpen={isUnassignModalOpen}>
+  <ModalContent>
+    <ModalClose onClick={() => setIsUnassignModalOpen(false)}>×</ModalClose>
+    <ModalTitle>Подтверждение</ModalTitle>
+    <p>Вы действительно хотите прекратить заниматься по данной программе тренировок? Назначить программу тренировок может только ваш тренер.</p>
+    
+    <ModalActions style={{gap: '0.5rem'}}>
+      <Button className="secondary" onClick={() => setIsUnassignModalOpen(false)} style={{fontSize: '0.8rem'}}>
+        Отмена
+      </Button>
+      <Button className="danger" onClick={handleUnassignProgram} style={{fontSize: '0.8rem'}}>
+        Да, согласен
+      </Button>
+    </ModalActions>
+  </ModalContent>
+</ModalOverlay>
 
       {/* Для клиентов - секция метрик */}
       <ScrollReveal delay={0.2}>
