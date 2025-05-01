@@ -46,6 +46,29 @@ class ChatController {
       const { message } = req.body;
       //@ts-ignore
       const sender_id = req.user.id;
+      //@ts-ignore
+      const role = req.user.role;
+
+    // Проверка существования отношений
+    if (role === 'client') {
+      const clientCheck = await pool.query(
+        'SELECT trainer_id FROM users WHERE id = $1',
+        [sender_id]
+      );
+      
+      if (!clientCheck.rows[0].trainer_id) {
+        return res.status(403).json({ message: 'You do not have a trainer' });
+      }
+    } else if (role === 'trainer') {
+      const trainerCheck = await pool.query(
+        'SELECT 1 FROM users WHERE trainer_id = $1 AND id = (SELECT client_id FROM chats WHERE id = $2)',
+        [sender_id, chat_id]
+      );
+      
+      if (!trainerCheck.rows.length) {
+        return res.status(403).json({ message: 'You are not the trainer of this client' });
+      }
+    }
   
       // Проверка существования чата
       const chatExists = await pool.query(

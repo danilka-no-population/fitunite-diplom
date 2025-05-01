@@ -39,14 +39,26 @@ export const setupWSServer = (server: any) => {
           if (data.type === 'message') {
             const { chat_id, sender_id, message: text } = data;
             
-            // Проверяем существование чата
+            // Проверяем существование чата и отношений
             const chatCheck = await pool.query(
-              'SELECT trainer_id, client_id FROM Chats WHERE id = $1',
+              `SELECT c.trainer_id, c.client_id, 
+              CASE WHEN u.trainer_id IS NOT NULL THEN true ELSE false END as is_active
+              FROM chats c
+              LEFT JOIN users u ON c.client_id = u.id AND c.trainer_id = u.trainer_id
+              WHERE c.id = $1`,
               [chat_id]
             );
             
-            if (!chatCheck.rows.length) {
-              console.error(`Chat with id ${chat_id} not found`);
+            if (!chatCheck.rows.length || !chatCheck.rows[0].is_active) {
+              console.error(`Chat with id ${chat_id} is not active`);
+              
+              // Удаляем чат, если отношения не активны
+              if (chatCheck.rows.length) {
+                const chat = chatCheck.rows[0];
+                await ChatModel.delete(chat.trainer_id, chat.client_id);
+                notifyChatDeleted(chat.trainer_id, chat.client_id);
+              }
+              
               return;
             }
       

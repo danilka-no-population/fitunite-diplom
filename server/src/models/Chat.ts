@@ -144,6 +144,15 @@ class ChatModel {
     );
     return parseInt(result.rows[0].count);
   }
+
+  // server/src/models/Chat.ts
+  static async findByTrainerAndClient(trainer_id: number, client_id: number): Promise<Chat | null> {
+    const result = await pool.query(
+      'SELECT * FROM Chats WHERE trainer_id = $1 AND client_id = $2',
+      [trainer_id, client_id]
+    );
+    return result.rows[0] || null;
+  }
 }
 
 export default ChatModel;
