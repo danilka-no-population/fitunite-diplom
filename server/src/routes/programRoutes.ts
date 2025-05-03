@@ -19,4 +19,7 @@ router.get('/:id', ProgramController.getProgramById);
 //@ts-ignore
 router.post('/', authMiddleware, roleMiddleware('trainer'), ProgramController.createProgram);
 
+//@ts-ignore
+router.get('/workouts/:workout_id/exercises', authMiddleware, ProgramController.getProgramWorkoutExercises);
+
 export default router;

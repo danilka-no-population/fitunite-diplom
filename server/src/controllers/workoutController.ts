@@ -97,6 +97,94 @@ class WorkoutController {
       res.status(500).json({ message: 'Server error' });
     }
   }
+
+
+
+  // Добавим новые методы в класс WorkoutController
+  static async assignWorkout(req: Request, res: Response) {
+    const { client_id, date, name, description, type } = req.body;
+    //@ts-ignore
+    const trainer_id = req.user.id;
+
+    try {
+      const newWorkout = await WorkoutModel.create({
+        client_id,
+        trainer_id,
+        date,
+        name,
+        description,
+        type,
+        status: 'pending' // Статус "ожидает выполнения"
+      });
+
+      res.status(201).json(newWorkout);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  // server/src/controllers/workoutController.ts
+  static async updateWorkoutStatus(req: Request, res: Response) {
+    const { workout_id } = req.params;
+    const { status, feeling } = req.body;
+    //@ts-ignore
+    const user_id = req.user.id;
+
+    try {
+      const workout = await WorkoutModel.findById(Number(workout_id));
+      if (!workout) {
+        return res.status(404).json({ message: 'Workout not found' });
+      }
+  
+      const updatedWorkout = await WorkoutModel.updateStatus(
+        Number(workout_id), 
+        status,
+        feeling
+      );
+      
+      res.status(200).json(updatedWorkout);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  // static async updateWorkoutStatus(req: Request, res: Response) {
+  //   const { workout_id } = req.params;
+  //   const { status, feeling } = req.body;
+    
+  //   try {
+  //     const workout = await WorkoutModel.findById(Number(workout_id));
+  //     if (!workout) return res.status(404).json({ message: 'Тренировка не найдена' });
+  
+  //     const updatedWorkout = await WorkoutModel.updateStatus(
+  //       Number(workout_id), 
+  //       status,
+  //       feeling
+  //     );
+      
+  //     // Возвращаем полные данные тренировки с упражнениями
+  //     const exercises = await WorkoutModel.findExercisesByWorkoutId(Number(workout_id));
+  //     res.status(200).json({ ...updatedWorkout, exercises });
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ message: 'Ошибка сервера' });
+  //   }
+  // }
+
+  static async getAssignedWorkouts(req: Request, res: Response) {
+    //@ts-ignore
+    const client_id = req.user.id;
+
+    try {
+      const workouts = await WorkoutModel.getAssignedWorkouts(client_id);
+      res.status(200).json(workouts);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
 }
 
 export default WorkoutController;

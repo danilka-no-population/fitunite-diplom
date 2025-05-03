@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import ProgramModel from '../models/Program';
 import WorkoutModel from '../models/Workout';
 import authMiddleware from '../middleware/authMiddleware';
+import pool from '../config/db';
 
 class ProgramController {
   // Получение всех публичных программ тренировок
@@ -140,6 +141,24 @@ class ProgramController {
       }
 
       res.status(201).json(newProgram);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async getProgramWorkoutExercises(req: Request, res: Response) {
+    const { workout_id } = req.params;
+  
+    try {
+      const exercises = await pool.query(
+        `SELECT we.*, e.name, e.category 
+         FROM WorkoutExercises we
+         JOIN Exercises e ON we.exercise_id = e.id
+         WHERE we.workout_id = $1`,
+        [workout_id]
+      );
+      res.status(200).json(exercises.rows);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error' });

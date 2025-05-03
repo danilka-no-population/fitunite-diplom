@@ -6,6 +6,7 @@ import WorkoutList from '../components/WorkoutList';
 import MealList from '../components/MealList';
 import ProgressCharts from './Progress';
 import ScrollReveal from '../components/ScrollReveal';
+import AssignWorkoutModal from '../components/AssignWorkoutModal';
 
 interface AvatarProps {
   src: string;
@@ -358,6 +359,8 @@ const ClientProfile: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [client, setClient] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [refresh, setRefresh] = useState(false)
 
   const fetchClient = async () => {
     try {
@@ -392,6 +395,7 @@ const ClientProfile: React.FC = () => {
 
   useEffect(() => {
     fetchClient();
+    console.log(client)
   }, [id]);
 
   if (!client) {
@@ -462,7 +466,26 @@ const ClientProfile: React.FC = () => {
             </ScrollReveal>
           </div>
         )}
-        {isClient && activeTab === 'workouts' && <WorkoutList refresh={false} clientId={Number(id)} />}
+
+        {isClient && activeTab === 'workouts' && (
+          <>
+            <AddButton 
+              onClick={() => setIsAssignModalOpen(true)}
+              style={{ marginBottom: '20px' }}
+            >
+              Назначить тренировку
+            </AddButton>
+            <WorkoutList refresh={false} clientId={Number(id)} />
+            {isAssignModalOpen && (
+              <AssignWorkoutModal
+                clientId={Number(id)}
+                onClose={() => setIsAssignModalOpen(false)}
+                onWorkoutAssigned={() => setRefresh(!refresh)}
+              />
+            )}
+          </>
+        )}
+        {/* {isClient && activeTab === 'workouts' && <WorkoutList refresh={false} clientId={Number(id)} />} */}
         {isClient && activeTab === 'progress' && <ProgressCharts userId={Number(id)}/>}
         {isClient && activeTab === 'meals' && <MealList refresh={false} userId={Number(id)} />}
       </Content>

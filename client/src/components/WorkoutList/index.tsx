@@ -115,8 +115,14 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
       try {
         const endpoint = clientId ? `/workouts/client/${clientId}` : '/workouts';
         const response = await api.get(endpoint);
+        
+        // Filter out pending workouts for clients
+        const filteredWorkouts = role === 'client' 
+          ? response.data.filter((w: any) => w.status !== 'pending')
+          : response.data;
+
         const workoutsWithExercises = await Promise.all(
-          response.data.map(async (workout: any) => {
+          filteredWorkouts.map(async (workout: any) => {
             const exercisesResponse = await api.get(`/workouts/${workout.id}/exercises`);
             const commentsResponse = await api.get(`/workout-comments/${workout.id}`);
             return { ...workout, exercises: exercisesResponse.data, comments: commentsResponse.data };
@@ -139,7 +145,7 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
       }
     };
     fetchWorkouts();
-  }, [refresh, clientId, update]);
+  }, [refresh, clientId, update, role]);
 
   const handleCommentAdded = () => {
     setUpdate(!update);
@@ -159,88 +165,184 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
           <EmptyMessage>Вы пока не добавляли тренировок!</EmptyMessage>
         ) : (
           <>
-            {currentWorkouts.map((workout) => (
-              <ScrollReveal delay={0.05} key={workout.id}>
-                <WorkoutCard>
-                  <WorkoutDate>
-                    {new Date(workout.date).toLocaleDateString('ru-RU', { 
-                      day: 'numeric', 
-                      month: 'long', 
-                      year: 'numeric' 
-                    })}
-                  </WorkoutDate>
-                  
-                  {role === 'trainer' && (
-                    <>
-                      {workout.name && <ExerciseName>{workout.name}</ExerciseName>}
-                      {workout.type && <WorkoutMeta>Тип: {workout.type}</WorkoutMeta>}
-                      {workout.description && <WorkoutMeta>Описание: {workout.description}</WorkoutMeta>}
-                    </>
-                  )}
-                  
-                  <WorkoutMeta>Длительность: {workout.duration} минут</WorkoutMeta>
-                  
-                  {role === 'client' && workout.feeling && (
-                    <WorkoutMeta>Ощущения: {workout.feeling}</WorkoutMeta>
-                  )}
-                  
-                  <ExerciseSection>
-                    <SectionTitle>Упражнения:</SectionTitle>
-                    {workout.exercises?.map((exercise: any) => (
-                      <ExerciseCard key={exercise.id}>
-                        <ExerciseName>{exercise.name}</ExerciseName>
-                        <ExerciseDetail>Категория: {exercise.category}</ExerciseDetail>
-                        
-                        {exercise.category === 'Бег' ? (
-                          <>
-                            <ExerciseDetail>Продолжительность: {exercise.duration} минут</ExerciseDetail>
-                            <ExerciseDetail>Расстояние: {exercise.distance} км</ExerciseDetail>
-                            <ExerciseDetail>
-                              Средняя скорость: {(exercise.distance / (exercise.duration / 60)).toFixed(2)} км/ч
-                            </ExerciseDetail>
-                          </>
-                        ) : (
-                          <>
-                            <ExerciseDetail>Подходы: {exercise.sets}</ExerciseDetail>
-                            <ExerciseDetail>Повторения: {exercise.reps}</ExerciseDetail>
-                            {exercise.weight > 0 && (
-                              <ExerciseDetail>Вес: {exercise.weight} кг</ExerciseDetail>
-                            )}
-                          </>
-                        )}
-                      </ExerciseCard>
-                    ))}
-                  </ExerciseSection>
-                  
-                  <CommentCard>
-                    <SectionTitle>Комментарии тренера:</SectionTitle>
-                    {workout.comments?.length > 0 ? (
-                      workout.comments.map((comment: any) => (
-                        <div key={comment.id}>
-                          <CommentText>{comment.comment}</CommentText>
-                          <CommentDate>
-                            {new Date(comment.created_at).toLocaleString('ru-RU')}
-                          </CommentDate>
-                        </div>
-                      ))
-                    ) : (
-                      <NoComments>
-                        {role === 'client' ? 
-                          'Ваш тренер пока не оставлял комментариев' : 
-                          'Вы пока не оставляли комментариев'}
-                      </NoComments>
+            {currentWorkouts.map((workout) => {
+              if(workout.status === 'assigned' || workout.status === 'completed' || workout.status === null){
+                return (
+                  <ScrollReveal delay={0.05} key={workout.id}>
+                  <WorkoutCard>
+                    <WorkoutDate>
+                      {new Date(workout.date).toLocaleDateString('ru-RU', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </WorkoutDate>
+                    
+                    {(role === 'client' || role === 'trainer') && (
+                      <>
+                        {workout.name && <ExerciseName>{workout.name}</ExerciseName>}
+                        {/* {workout.type && <WorkoutMeta>Тип: {workout.type}</WorkoutMeta>} */}
+                        <WorkoutMeta>
+                          Тип: {workout.trainer_id ? 'Назначенная' : 'Личная'} тренировка
+                          {workout.type && ` • ${workout.type}`}
+                        </WorkoutMeta>
+                        {workout.description && <WorkoutMeta>Описание: {workout.description}</WorkoutMeta>}
+                      </>
                     )}
-                  </CommentCard>
-                  
-                  {role === 'trainer' && (
-                    <AddWorkoutComment 
-                      workoutId={workout.id} 
-                      onCommentAdded={handleCommentAdded} 
-                    />
-                  )}
-                </WorkoutCard>
-              </ScrollReveal>
-            ))}
+  
+                    {workout.duration && (<WorkoutMeta>Длительность: {workout.duration} минут</WorkoutMeta>)}
+                    
+                    {role === 'client' && workout.feeling && (
+                      <WorkoutMeta>Ощущения: {workout.feeling}</WorkoutMeta>
+                    )}
+                    
+                    <ExerciseSection>
+                      <SectionTitle>Упражнения:</SectionTitle>
+                      {workout.exercises?.map((exercise: any) => (
+                        <ExerciseCard key={exercise.id}>
+                          <ExerciseName>{exercise.name}</ExerciseName>
+                          <ExerciseDetail>Категория: {exercise.category}</ExerciseDetail>
+                          
+                          {exercise.category === 'Бег' ? (
+                            <>
+                              <ExerciseDetail>Продолжительность: {exercise.duration} минут</ExerciseDetail>
+                              <ExerciseDetail>Расстояние: {exercise.distance} км</ExerciseDetail>
+                              <ExerciseDetail>
+                                Средняя скорость: {(exercise.distance / (exercise.duration / 60)).toFixed(2)} км/ч
+                              </ExerciseDetail>
+                            </>
+                          ) : (
+                            <>
+                              <ExerciseDetail>Подходы: {exercise.sets}</ExerciseDetail>
+                              <ExerciseDetail>Повторения: {exercise.reps}</ExerciseDetail>
+                              {exercise.weight > 0 && (
+                                <ExerciseDetail>Вес: {exercise.weight} кг</ExerciseDetail>
+                              )}
+                            </>
+                          )}
+                        </ExerciseCard>
+                      ))}
+                    </ExerciseSection>
+                    
+                    <CommentCard>
+                      <SectionTitle>Комментарии тренера:</SectionTitle>
+                      {workout.comments?.length > 0 ? (
+                        workout.comments.map((comment: any) => (
+                          <div key={comment.id}>
+                            <CommentText>{comment.comment}</CommentText>
+                            <CommentDate>
+                              {new Date(comment.created_at).toLocaleString('ru-RU')}
+                            </CommentDate>
+                          </div>
+                        ))
+                      ) : (
+                        <NoComments>
+                          {role === 'client' ? 
+                            'Ваш тренер пока не оставлял комментариев' : 
+                            'Вы пока не оставляли комментариев'}
+                        </NoComments>
+                      )}
+                    </CommentCard>
+                    
+                    {role === 'trainer' && (
+                      <AddWorkoutComment 
+                        workoutId={workout.id} 
+                        onCommentAdded={handleCommentAdded} 
+                      />
+                    )}
+                  </WorkoutCard>
+                </ScrollReveal>
+                )
+              }else if(workout.status === 'skipped'){
+                return (
+                  <ScrollReveal delay={0.05} key={workout.id}>
+                  <WorkoutCard>
+                    <WorkoutDate>
+                      {new Date(workout.date).toLocaleDateString('ru-RU', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </WorkoutDate>
+                    <h3 style={{color: '#930204'}}>Тренировка не выполнена (пропущена)</h3><br/>
+                    
+                    {(role === 'client' || role === 'trainer') && (
+                      <>
+                        {workout.name && <ExerciseName>{workout.name}</ExerciseName>}
+                        {/* {workout.type && <WorkoutMeta>Тип: {workout.type}</WorkoutMeta>} */}
+                        <WorkoutMeta>
+                          Тип: {workout.trainer_id ? 'Назначенная' : 'Личная'} тренировка
+                          {workout.type && ` • ${workout.type}`}
+                        </WorkoutMeta>
+                        {workout.description && <WorkoutMeta>Описание: {workout.description}</WorkoutMeta>}
+                      </>
+                    )}
+  
+                    {workout.duration && (<WorkoutMeta>Длительность: {workout.duration} минут</WorkoutMeta>)}
+                    
+                    {role === 'client' && workout.feeling && (
+                      <WorkoutMeta>Ощущения: {workout.feeling}</WorkoutMeta>
+                    )}
+                    
+                    <ExerciseSection>
+                      <SectionTitle>Упражнения:</SectionTitle>
+                      {workout.exercises?.map((exercise: any) => (
+                        <ExerciseCard key={exercise.id}>
+                          <ExerciseName>{exercise.name}</ExerciseName>
+                          <ExerciseDetail>Категория: {exercise.category}</ExerciseDetail>
+                          
+                          {exercise.category === 'Бег' ? (
+                            <>
+                              <ExerciseDetail>Продолжительность: {exercise.duration} минут</ExerciseDetail>
+                              <ExerciseDetail>Расстояние: {exercise.distance} км</ExerciseDetail>
+                              <ExerciseDetail>
+                                Средняя скорость: {(exercise.distance / (exercise.duration / 60)).toFixed(2)} км/ч
+                              </ExerciseDetail>
+                            </>
+                          ) : (
+                            <>
+                              <ExerciseDetail>Подходы: {exercise.sets}</ExerciseDetail>
+                              <ExerciseDetail>Повторения: {exercise.reps}</ExerciseDetail>
+                              {exercise.weight > 0 && (
+                                <ExerciseDetail>Вес: {exercise.weight} кг</ExerciseDetail>
+                              )}
+                            </>
+                          )}
+                        </ExerciseCard>
+                      ))}
+                    </ExerciseSection>
+                    
+                    <CommentCard>
+                      <SectionTitle>Комментарии тренера:</SectionTitle>
+                      {workout.comments?.length > 0 ? (
+                        workout.comments.map((comment: any) => (
+                          <div key={comment.id}>
+                            <CommentText>{comment.comment}</CommentText>
+                            <CommentDate>
+                              {new Date(comment.created_at).toLocaleString('ru-RU')}
+                            </CommentDate>
+                          </div>
+                        ))
+                      ) : (
+                        <NoComments>
+                          {role === 'client' ? 
+                            'Ваш тренер пока не оставлял комментариев' : 
+                            'Вы пока не оставляли комментариев'}
+                        </NoComments>
+                      )}
+                    </CommentCard>
+                    
+                    {role === 'trainer' && (
+                      <AddWorkoutComment 
+                        workoutId={workout.id} 
+                        onCommentAdded={handleCommentAdded} 
+                      />
+                    )}
+                  </WorkoutCard>
+                </ScrollReveal>
+                )
+              }
+            })}
             
             {totalPages > 1 && (
               <Pagination

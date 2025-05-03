@@ -72,6 +72,53 @@ class WorkoutModel {
     );
     return result.rows;
   }
+
+
+
+  // Добавим новые методы в класс WorkoutModel
+  static async assignWorkout(workout: Workout): Promise<Workout> {
+    const { client_id, trainer_id, date, name, description, type, status } = workout;
+
+    const result = await pool.query(
+      'INSERT INTO Workouts (client_id, trainer_id, date, name, description, type, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [client_id, trainer_id, date, name, description, type, status]
+    );
+
+    return result.rows[0];
+  }
+
+  static async updateStatus(workout_id: number, status: string, feeling?: string): Promise<Workout> {
+    const result = await pool.query(
+      'UPDATE Workouts SET status = $1, feeling = $2 WHERE id = $3 RETURNING *',
+      [status, feeling, workout_id]
+    );
+    return result.rows[0];
+  }
+
+  // static async updateStatus(workout_id: number, status: string, feeling?: string): Promise<Workout> {
+  //   const result = await pool.query(
+  //     `UPDATE Workouts 
+  //      SET status = $1, feeling = $2, date = CASE WHEN $1 = 'completed' THEN NOW() ELSE NULL END
+  //      WHERE id = $3 
+  //      RETURNING *`,
+  //     [status, feeling, workout_id]
+  //   );
+  //   return result.rows[0];
+  // }
+
+  static async getAssignedWorkouts(client_id: number): Promise<Workout[]> {
+    const result = await pool.query(
+      'SELECT * FROM Workouts WHERE client_id = $1 AND trainer_id IS NOT NULL AND status = $2 ORDER BY date DESC',
+      [client_id, 'pending']
+    );
+    return result.rows;
+  }
+
+  // Добавим новый метод в класс WorkoutModel
+  static async findById(id: number): Promise<Workout | null> {
+    const result = await pool.query('SELECT * FROM Workouts WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  }
 }
 
 export default WorkoutModel;

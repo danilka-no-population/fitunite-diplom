@@ -10,6 +10,11 @@ export const assignProgram = (data: { program_id: number; client_id: number }) =
 export const unassignProgram = (data: { client_id: number }) => axios.post('/assigned-programs/unassign', data);
 export const getClientsWithPrograms = () => axios.get('/assigned-programs/clients');
 
+// Add these new exports
+export const getClientAssignedWorkouts = (clientId: number) => api.get(`/workouts/client/${clientId}/assigned`);
+export const markWorkoutCompleted = (workoutId: number) => api.put(`/workouts/${workoutId}/status`, { status: 'completed' });
+export const markWorkoutNotCompleted = (workoutId: number) => api.put(`/workouts/${workoutId}/status`, { status: 'skipped' });
+
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     // if (token) {
