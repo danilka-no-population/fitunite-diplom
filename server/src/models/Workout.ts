@@ -87,10 +87,22 @@ class WorkoutModel {
     return result.rows[0];
   }
 
+  // static async updateStatus(workout_id: number, status: string, feeling?: string): Promise<Workout> {
+  //   const result = await pool.query(
+  //     'UPDATE Workouts SET status = $1, feeling = $2 WHERE id = $3 RETURNING *',
+  //     [status, feeling, workout_id]
+  //   );
+  //   return result.rows[0];
+  // }
   static async updateStatus(workout_id: number, status: string, feeling?: string): Promise<Workout> {
     const result = await pool.query(
-      'UPDATE Workouts SET status = $1, feeling = $2 WHERE id = $3 RETURNING *',
-      [status, feeling, workout_id]
+      `UPDATE Workouts 
+       SET status = $1, 
+           feeling = $2, 
+           date = CASE WHEN $1 = 'completed' THEN CURRENT_DATE ELSE date END
+       WHERE id = $3 
+       RETURNING *`,
+      [status, feeling || null, workout_id]
     );
     return result.rows[0];
   }

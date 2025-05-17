@@ -119,7 +119,7 @@ const Workouts: React.FC = () => {
 
   const handleCompleteWorkout = async () => {
     try {
-      await api.put(`/workouts/${selectedWorkout.id}/status`, { status: 'completed' });
+      // await api.put(`/workouts/${selectedWorkout.id}/status`, { status: 'completed' });
       setRefresh(!refresh);
       fetchAssignedWorkouts();
       setModalIsOpen(false);

@@ -125,16 +125,43 @@ class WorkoutController {
   }
 
   // server/src/controllers/workoutController.ts
+  // static async updateWorkoutStatus(req: Request, res: Response) {
+  //   const { workout_id } = req.params;
+  //   const { status, feeling } = req.body;
+  //   //@ts-ignore
+  //   const user_id = req.user.id;
+
+  //   try {
+  //     const workout = await WorkoutModel.findById(Number(workout_id));
+  //     if (!workout) {
+  //       return res.status(404).json({ message: 'Workout not found' });
+  //     }
+  
+  //     const updatedWorkout = await WorkoutModel.updateStatus(
+  //       Number(workout_id), 
+  //       status,
+  //       feeling
+  //     );
+      
+  //     res.status(200).json(updatedWorkout);
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ message: 'Server error' });
+  //   }
+  // }
   static async updateWorkoutStatus(req: Request, res: Response) {
     const { workout_id } = req.params;
     const { status, feeling } = req.body;
-    //@ts-ignore
-    const user_id = req.user.id;
-
+    
     try {
       const workout = await WorkoutModel.findById(Number(workout_id));
       if (!workout) {
-        return res.status(404).json({ message: 'Workout not found' });
+        return res.status(404).json({ message: 'Тренировка не найдена' });
+      }
+  
+      // Проверяем, что статус допустимый
+      if (!['completed', 'skipped'].includes(status)) {
+        return res.status(400).json({ message: 'Недопустимый статус тренировки' });
       }
   
       const updatedWorkout = await WorkoutModel.updateStatus(
@@ -142,11 +169,13 @@ class WorkoutController {
         status,
         feeling
       );
-      
-      res.status(200).json(updatedWorkout);
+  
+      // Возвращаем обновленные данные тренировки
+      const exercises = await WorkoutModel.findExercisesByWorkoutId(Number(workout_id));
+      res.status(200).json({ ...updatedWorkout, exercises });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Ошибка сервера' });
     }
   }
 

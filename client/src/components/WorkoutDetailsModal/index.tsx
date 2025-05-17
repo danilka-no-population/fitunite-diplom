@@ -207,6 +207,20 @@ const ExerciseInput = styled.input`
   border-radius: 4px;
 `;
 
+const ErrorMessage = styled.div`
+  color: #A80003;
+  background-color: rgba(168, 0, 3, 0.1);
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
 interface WorkoutDetailsModalProps {
   workout: any;
   onClose: () => void;
@@ -224,6 +238,7 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
   const [editing, setEditing] = useState(false);
   const [feeling, setFeeling] = useState(workout.feeling || '');
   const [availableExercises, setAvailableExercises] = useState<any[]>([]);
+  const [error, setError] = useState('')
 
   // useEffect(() => {
   //   const fetchExercises = async () => {
@@ -255,73 +270,180 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
     fetchData();
   }, [workout.id]);
 
-  const handleCompleteWorkout = async () => {
-    try {
-      // 1. Сначала обновляем упражнения, если было редактирование
-      if (editing) {
-        // Получаем текущие упражнения из базы
-        const currentExercisesResponse = await api.get(`/workouts/${workout.id}/exercises`);
-        const currentExercises = currentExercisesResponse.data;
-  
-        // Создаем карту текущих упражнений для быстрого доступа
-        const currentExercisesMap = new Map(currentExercises.map((ex: any) => [ex.id, ex]));
-  
-        // Обрабатываем каждое упражнение из формы
-        for (const exercise of exercises) {
-          if (exercise.id) {
-            // Обновляем существующее упражнение
-            await api.put(`/workouts/exercises/${exercise.id}`, {
-              sets: Number(exercise.sets) || null,
-              reps: Number(exercise.reps) || null,
-              weight: Number(exercise.weight) || null,
-              duration: Number(exercise.duration) || null,
-              distance: Number(exercise.distance) || null
-            });
-            // Удаляем из карты, чтобы потом оставить только те, что нужно удалить
-            currentExercisesMap.delete(exercise.id);
-          } else {
-            // Добавляем новое упражнение
-            await api.post('/workouts/exercises', {
-              workout_id: workout.id,
-              exercise_id: exercise.exercise_id,
-              sets: Number(exercise.sets) || null,
-              reps: Number(exercise.reps) || null,
-              weight: Number(exercise.weight) || null,
-              duration: Number(exercise.duration) || null,
-              distance: Number(exercise.distance) || null
-            });
-          }
-        }
-  
-        // Удаляем упражнения, которые остались в карте (были удалены в форме)
-        for (const id of currentExercisesMap.keys()) {
-          await api.delete(`/workouts/exercises/${id}`);
-        }
+  const validateExercises = () => {
+    for (const [index, exercise] of exercises.entries()) {
+      if (!exercise.exercise_id) {
+        setError(`В упражнении ${index + 1} не выбран тип`);
+        return false;
       }
   
-      // 2. Обновляем статус тренировки и ощущения
+      const selectedExercise = availableExercises.find(ex => ex.id === parseInt(exercise.exercise_id));
+      const isRunning = selectedExercise?.category === 'Бег';
+  
+      if (isRunning) {
+        if (!exercise.duration) {
+          setError(`В упражнении ${index + 1} не указана продолжительность`);
+          return false;
+        }
+  
+        const durationNum = parseInt(exercise.duration);
+        if (isNaN(durationNum) || durationNum < 1 || durationNum > 200) {
+          setError(`В упражнении ${index + 1} продолжительность должна быть от 1 до 200 минут`);
+          return false;
+        }
+  
+        if (!exercise.distance) {
+          setError(`В упражнении ${index + 1} не указано расстояние`);
+          return false;
+        }
+  
+        const distanceNum = parseFloat(exercise.distance);
+        if (isNaN(distanceNum) || distanceNum < 0.1 || distanceNum > 42) {
+          setError(`В упражнении ${index + 1} расстояние должно быть от 0.1 до 42 км`);
+          return false;
+        }
+      } else {
+        if (!exercise.sets) {
+          setError(`В упражнении ${index + 1} не указано количество подходов`);
+          return false;
+        }
+  
+        const setsNum = parseInt(exercise.sets);
+        if (isNaN(setsNum) || setsNum < 1 || setsNum > 200) {
+          setError(`В упражнении ${index + 1} подходы должны быть от 1 до 200`);
+          return false;
+        }
+  
+        if (!exercise.reps) {
+          setError(`В упражнении ${index + 1} не указано количество повторений`);
+          return false;
+        }
+  
+        const repsNum = parseInt(exercise.reps);
+        if (isNaN(repsNum) || repsNum < 1 || repsNum > 200) {
+          setError(`В упражнении ${index + 1} повторения должны быть от 1 до 200`);
+          return false;
+        }
+  
+        // if (exercise.weight) {
+        //   const weightNum = parseFloat(exercise.weight);
+        //   if (isNaN(weightNum) || weightNum < 1 || weightNum > 200) {
+        //     setError(`В упражнении ${index + 1} вес должен быть от 1 до 200 кг`);
+        //     return false;
+        //   }
+        // }
+        const weightNum = parseFloat(exercise.weight);
+        if (isNaN(weightNum) || weightNum < 1 || weightNum > 200) {
+          setError(`В упражнении ${index + 1} вес должен быть от 1 до 200 кг`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  // const handleCompleteWorkout = async () => {
+  //   if (!validateExercises()) return;
+    
+  //   try {
+  //     // 1. Сначала обновляем упражнения, если было редактирование
+  //     if (editing) {
+  //       // Получаем текущие упражнения из базы
+  //       const currentExercisesResponse = await api.get(`/workouts/${workout.id}/exercises`);
+  //       const currentExercises = currentExercisesResponse.data;
+  
+  //       // Создаем карту текущих упражнений для быстрого доступа
+  //       const currentExercisesMap = new Map(currentExercises.map((ex: any) => [ex.id, ex]));
+  
+  //       // Обрабатываем каждое упражнение из формы
+  //       for (const exercise of exercises) {
+  //         if (exercise.id) {
+  //           // Обновляем существующее упражнение
+  //           await api.put(`/workouts/exercises/${exercise.id}`, {
+  //             sets: Number(exercise.sets) || null,
+  //             reps: Number(exercise.reps) || null,
+  //             weight: Number(exercise.weight) || null,
+  //             duration: Number(exercise.duration) || null,
+  //             distance: Number(exercise.distance) || null
+  //           });
+  //           // Удаляем из карты, чтобы потом оставить только те, что нужно удалить
+  //           currentExercisesMap.delete(exercise.id);
+  //         } else {
+  //           // Добавляем новое упражнение
+  //           await api.post('/workouts/exercises', {
+  //             workout_id: workout.id,
+  //             exercise_id: exercise.exercise_id,
+  //             sets: Number(exercise.sets) || null,
+  //             reps: Number(exercise.reps) || null,
+  //             weight: Number(exercise.weight) || null,
+  //             duration: Number(exercise.duration) || null,
+  //             distance: Number(exercise.distance) || null
+  //           });
+  //         }
+  //       }
+  
+  //       // Удаляем упражнения, которые остались в карте (были удалены в форме)
+  //       for (const id of currentExercisesMap.keys()) {
+  //         await api.delete(`/workouts/exercises/${id}`);
+  //       }
+  //     }
+  
+  //     // 2. Обновляем статус тренировки и ощущения
+  //     const response = await api.put(`/workouts/${workout.id}/status`, {
+  //       status: 'completed',
+  //       feeling: feeling.trim() || null
+  //     });
+  
+  //     // 3. Обновляем данные в родительском компоненте
+  //     // onComplete();
+  //     onClose();
+  //   } catch (error) {
+  //     console.error('Ошибка сохранения:', error);
+  //     setError('Не удалось сохранить изменения');
+  //     setTimeout(() => setError(''), 5000);
+  //   }
+  // };
+  
+  // const handleSkipWorkout = async () => {
+  //   try {
+  //     await api.put(`/workouts/${workout.id}/status`, { status: 'skipped' });
+  //     onSkip();
+  //     onClose();
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+  const handleCompleteWorkout = async () => {
+    try {
+      // Обновляем статус тренировки и ощущения
       await api.put(`/workouts/${workout.id}/status`, {
         status: 'completed',
-        feeling: feeling
+        feeling: feeling || null
       });
   
-      // 3. Обновляем данные в родительском компоненте
+      // Обновляем данные в родительском компоненте
       onComplete();
       onClose();
     } catch (error) {
       console.error('Ошибка сохранения:', error);
-      // setError('Не удалось сохранить изменения');
-      // setTimeout(() => setError(''), 5000);
+      setError('Не удалось сохранить изменения');
+      setTimeout(() => setError(''), 5000);
     }
   };
   
   const handleSkipWorkout = async () => {
     try {
-      await api.put(`/workouts/${workout.id}/status`, { status: 'skipped' });
+      await api.put(`/workouts/${workout.id}/status`, { 
+        status: 'skipped',
+        feeling: feeling.trim() || null
+      });
       onSkip();
       onClose();
     } catch (error) {
       console.error(error);
+      setError('Не удалось сохранить изменения');
+      setTimeout(() => setError(''), 5000);
     }
   };
 
@@ -410,12 +532,12 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'duration', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'duration', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'duration', value.toString());
+                            // }}
                         />
                         <ExerciseInput
                             type="number"
@@ -425,13 +547,13 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'distance', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 0.1), 42); // Применяем ограничения
-                              handleExerciseChange(index, 'distance', value.toString());
-                            }}
-                            step="0.1"
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 0.1), 42); // Применяем ограничения
+                            //   handleExerciseChange(index, 'distance', value.toString());
+                            // }}
+                            // step="0.1"
                         />
                       </>
                     ) : (
@@ -444,12 +566,12 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                               const value = e.target.value; // Получаем сырое значение из инпута
                               handleExerciseChange(index, 'sets', value); // Сохраняем его как есть
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только после того, как пользователь завершил ввод
-                              let value = parseInt(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'sets', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только после того, как пользователь завершил ввод
+                            //   let value = parseInt(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'sets', value.toString());
+                            // }}
                         />
                         <ExerciseInput
                             type="number"
@@ -459,12 +581,12 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'reps', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'reps', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'reps', value.toString());
+                            // }}
                         />
                         <ExerciseInput
                             type="number"
@@ -474,12 +596,12 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'weight', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'weight', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'weight', value.toString());
+                            // }}
                         />
                       </>
                     )}
@@ -537,11 +659,23 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
           )}
         </ExercisesList>
 
-        {workout.status === 'pending' && (
-          <EditButton onClick={() => setEditing(!editing)} style={{width: '100%'}}>
+        {/* {workout.status === 'pending' && (
+          <EditButton onClick={() => {
+            if (editing) {
+              if (validateExercises()) {
+                setEditing(false);
+              }else{
+                setTimeout(() => {
+                  setError('')
+                }, 5000)
+              }
+            } else {
+              setEditing(true);
+            }
+          }} style={{width: '100%'}}>
             {editing ? 'Завершить редактирование' : 'Редактировать тренировку'}
           </EditButton>
-        )}
+        )} */}
 
         {/* disabled={editing ? true : false} style={{backgroundColor: editing ? '#666' : '#058E3A'}}
         disabled={editing ? true : false} style={{backgroundColor: editing ? '#666' : '#A80003'}} */}
@@ -560,6 +694,7 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
             ) : null}
           </ButtonGroup>
         )}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
       </ModalContent>
     </ModalOverlay>
   );

@@ -329,7 +329,7 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
         return "Подходы должны быть от 1 до 200";
       if (!exercise.reps || exercise.reps < 1 || exercise.reps > 200) 
         return "Повторения должны быть от 1 до 200";
-      if (exercise.weight && (exercise.weight < 1 || exercise.weight > 200)) 
+      if (!exercise.weight || exercise.weight < 1 || exercise.weight > 200) 
         return "Вес должен быть от 1 до 200 кг";
     }
     return null;
@@ -502,12 +502,12 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'duration', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'duration', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'duration', value.toString());
+                            // }}
                             style={{ marginBottom: '0.5rem' }}
                           />
 
@@ -519,13 +519,13 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'distance', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 0.1), 42); // Применяем ограничения
-                              handleExerciseChange(index, 'distance', value.toString());
-                            }}
-                            step="0.1"
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 0.1), 42); // Применяем ограничения
+                            //   handleExerciseChange(index, 'distance', value.toString());
+                            // }}
+                            // step="0.1"
                           />
                         </>
                       ) : (
@@ -538,12 +538,12 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                               const value = e.target.value; // Получаем сырое значение из инпута
                               handleExerciseChange(index, 'sets', value); // Сохраняем его как есть
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только после того, как пользователь завершил ввод
-                              let value = parseInt(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'sets', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только после того, как пользователь завершил ввод
+                            //   let value = parseInt(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'sets', value.toString());
+                            // }}
                             style={{ marginBottom: '0.5rem' }}
                           />
                           <Input
@@ -554,12 +554,12 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'reps', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'reps', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'reps', value.toString());
+                            // }}
                             style={{ marginBottom: '0.5rem' }}
                           />
 
@@ -571,12 +571,12 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                               const value = e.target.value; // Сохраняем сырое значение
                               handleExerciseChange(index, 'weight', value); // Передаем значение без изменений
                             }}
-                            onBlur={(e) => {
-                              // Ограничиваем значение только при потере фокуса
-                              let value = parseFloat(e.target.value) || 0;
-                              value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
-                              handleExerciseChange(index, 'weight', value.toString());
-                            }}
+                            // onBlur={(e) => {
+                            //   // Ограничиваем значение только при потере фокуса
+                            //   let value = parseFloat(e.target.value) || 0;
+                            //   value = Math.min(Math.max(value, 1), 200); // Применяем ограничения
+                            //   handleExerciseChange(index, 'weight', value.toString());
+                            // }}
                           />
                         </>
                       )
@@ -780,10 +780,12 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                   </>
                 )} */}
 
+                
+
                 <Button 
                   type="button" 
                   onClick={handleSubmit}
-                  disabled={!selectedWorkout || !date || loading}
+                  // disabled={!selectedWorkout || !date || loading}
                 >
                   {loading ? 'Сохранение...' : 'Назначить тренировку'}
                 </Button>
