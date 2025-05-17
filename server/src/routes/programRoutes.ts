@@ -1,16 +1,25 @@
 import express from 'express';
 import ProgramController from '../controllers/programController';
 import authMiddleware from '../middleware/authMiddleware';
+import roleMiddleware from '../middleware/roleMiddleware';
 
 const router = express.Router();
 
-// Получение всех программ тренировок
-router.get('/', ProgramController.getPrograms);
+// Получение публичных программ
+router.get('/public', ProgramController.getPublicPrograms);
+
+// Получение программ текущего тренера
+//@ts-ignore
+router.get('/my', authMiddleware, roleMiddleware('trainer'), ProgramController.getMyPrograms);
 
 //@ts-ignore
 router.get('/:id', ProgramController.getProgramById);
 
+// Создание новой программы
 //@ts-ignore
-router.post('/', authMiddleware, ProgramController.createProgram);
+router.post('/', authMiddleware, roleMiddleware('trainer'), ProgramController.createProgram);
+
+//@ts-ignore
+router.get('/workouts/:workout_id/exercises', authMiddleware, ProgramController.getProgramWorkoutExercises);
 
 export default router;

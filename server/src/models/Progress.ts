@@ -37,7 +37,7 @@ class ProgressModel {
         // Получаем все упражнения пользователя с привязкой к категориям
         static async getUserWorkoutExercises(user_id: number) {
             const result = await pool.query(
-                `SELECT we.*, w.date, e.category, e.type 
+                `SELECT we.*, w.date, e.category, e.type, e.id as exercise_id, e.name as exercise_name
                  FROM WorkoutExercises we
                  JOIN Workouts w ON we.workout_id = w.id
                  JOIN Exercises e ON we.exercise_id = e.id

@@ -1,6 +1,8 @@
 import pool from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import ChatModel from './Chat';
+import { notifyChatCreated, notifyChatDeleted } from '../websocket';
 
 export interface User {
     id?: number;
@@ -55,32 +57,61 @@ class UserModel {
         const result = await pool.query('SELECT * FROM Users WHERE id = $1', [id]);
         return result.rows[0] || null;
     }
+
+
+    // static async update(id: number, data: Partial<User>): Promise<User> {
+    //     //@ts-ignore
+    //     const { fullname, avatar, phone_number, trainer_id, specialization } = data;
+        
+    //     const result = await pool.query(
+    //         'UPDATE Users SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 WHERE id = $6 RETURNING *',
+    //         [fullname, avatar, phone_number, trainer_id, specialization, id]
+    //     );
+        
+    //     return result.rows[0];
+    // }
+
     static async update(id: number, data: Partial<User>): Promise<User> {
-        //@ts-ignore
-        const { fullname, avatar, phone_number, trainer_id, specialization } = data;
-        
-        const result = await pool.query(
-            'UPDATE Users SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 WHERE id = $6 RETURNING *',
-            [fullname, avatar, phone_number, trainer_id, specialization, id]
-        );
-        
-        return result.rows[0];
+      //@ts-ignore
+      const { fullname, avatar, phone_number, trainer_id, specialization, height } = data;
+      
+      const result = await pool.query(
+          'UPDATE Users SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5, height = $6 WHERE id = $7 RETURNING *',
+          [fullname, avatar, phone_number, trainer_id, specialization, height, id]
+      );
+      
+      return result.rows[0];
     }
 
+    // static async updateProfile(id: number, data: Partial<User>): Promise<User> {
+    //     //@ts-ignore
+    //     const { fullname, avatar, phone_number, trainer_id, specialization } = data;
+      
+    //     const result = await pool.query(
+    //       `UPDATE Users 
+    //        SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 
+    //        WHERE id = $6 
+    //        RETURNING *`,
+    //       [fullname, avatar, phone_number, trainer_id || id, specialization, id]
+    //     );
+      
+    //     return result.rows[0];
+    //   }
+
     static async updateProfile(id: number, data: Partial<User>): Promise<User> {
-        //@ts-ignore
-        const { fullname, avatar, phone_number, trainer_id, specialization } = data;
-      
-        const result = await pool.query(
-          `UPDATE Users 
-           SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5 
-           WHERE id = $6 
-           RETURNING *`,
-          [fullname, avatar, phone_number, trainer_id || id, specialization, id]
-        );
-      
-        return result.rows[0];
-      }
+      //@ts-ignore
+      const { fullname, avatar, phone_number, trainer_id, specialization, height } = data;
+    
+      const result = await pool.query(
+        `UPDATE Users 
+         SET fullname = $1, avatar = $2, phone_number = $3, trainer_id = $4, specialization = $5, height = $6
+         WHERE id = $7 
+         RETURNING *`,
+        [fullname, avatar, phone_number, trainer_id || id, specialization, height, id]
+      );
+    
+      return result.rows[0];
+    }
       
       static async updateAvatar(id: number, avatar: string): Promise<User> {
         const result = await pool.query(
@@ -135,12 +166,12 @@ class UserModel {
         return result.rows;
       }
 
-      static async addClient(trainerId: number, clientId: number): Promise<void> {
-        await pool.query(
-          'UPDATE Users SET trainer_id = $1 WHERE id = $2',
-          [trainerId, clientId]
-        );
-      }
+      // static async addClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+      //     [trainerId, clientId]
+      //   );
+      // }
 
       static async getAllClients(): Promise<User[]> {
         const result = await pool.query(
@@ -149,11 +180,33 @@ class UserModel {
         return result.rows;
       }
     
+      // static async removeClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
+      //     [clientId, trainerId]
+      //   );
+      // }
+
+      static async addClient(trainerId: number, clientId: number): Promise<void> {
+        await pool.query(
+          'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+          [trainerId, clientId]
+        );
+        
+        // Создаем чат
+        await ChatModel.findOrCreate(trainerId, clientId);
+        notifyChatCreated(trainerId, clientId);
+      }
+      
       static async removeClient(trainerId: number, clientId: number): Promise<void> {
         await pool.query(
           'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
           [clientId, trainerId]
         );
+        
+        // Удаляем чат
+        await ChatModel.delete(trainerId, clientId);
+        notifyChatDeleted(trainerId, clientId);
       }
 }
 

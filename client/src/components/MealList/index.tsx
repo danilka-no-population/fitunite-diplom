@@ -3,42 +3,123 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
 import AddMealComment from '../AddMealComment';
+import ScrollReveal from '../../components/ScrollReveal';
+import Pagination from '../Pagination';
 
 const Container = styled.div`
-  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 1.1rem;
 `;
 
 const MealCard = styled.div`
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 15px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-bottom: 30px;
+`;
+
+const MealDate = styled.h3`
+  color: #05396B;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+`;
+
+const MealSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const SectionTitle = styled.h4`
+  color: #058E3A;
+  font-size: 1.2rem;
   margin-bottom: 10px;
 `;
 
 const ProductCard = styled.div`
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f5f9ff;
+  border-radius: 10px;
+  border: 1px solid #e0e9ff;
+`;
+
+const ProductName = styled.p`
+  font-weight: bold;
+  color: #05396B;
+  margin-bottom: 5px;
+`;
+
+const ProductDetail = styled.p`
+  color: #666;
+  margin-bottom: 3px;
+  font-size: 0.9rem;
 `;
 
 const NutritionInfo = styled.div`
-  margin-top: 10px;
-  font-weight: bold;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #edf5e0;
+  border-radius: 10px;
+  border: 1px solid #d8e8c0;
+`;
+
+const NutritionTitle = styled.h4`
+  color: #058E3A;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+`;
+
+const NutritionItem = styled.p`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
 `;
 
 const CommentCard = styled.div`
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+  background-color: #f0f7ff;
+  border-radius: 10px;
+  border: 1px solid #d0e3ff;
+`;
+
+const CommentText = styled.p`
+  color: #05396B;
+  margin-bottom: 5px;
+`;
+
+const CommentDate = styled.small`
+  color: #888;
+  font-size: 0.8rem;
+`;
+
+const NoComments = styled.div`
+  padding: 15px;
+  margin-top: 20px;
   background-color: #f9f9f9;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  color: #666;
+  text-align: center;
 `;
 
 const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, userId }) => {
   const [meals, setMeals] = useState<any[]>([]);
   const [update, setUpdate] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const mealsPerPage = 3;
 
   useEffect(() => {
     const fetchMeals = async () => {
@@ -52,6 +133,17 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
             return { ...meal, products: productsResponse.data, comments: commentsResponse.data };
           })
         );
+        
+        // Сортировка по дате (новые сверху)
+        mealsWithProducts.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA === dateB) {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
+          return dateB - dateA;
+        });
+        
         setMeals(mealsWithProducts);
       } catch (error) {
         console.error(error);
@@ -62,8 +154,7 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
   }, [refresh, userId, update]);
 
   const handleCommentAdded = () => {
-    setMeals((prevMeals) => [...prevMeals]);
-    setUpdate(!update)
+    setUpdate(!update);
   };
 
   const calculateNutrition = (products: any[]) => {
@@ -102,66 +193,121 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
     return groupedProducts;
   };
 
+  // Пагинация
+  const indexOfLastMeal = currentPage * mealsPerPage;
+  const indexOfFirstMeal = indexOfLastMeal - mealsPerPage;
+  const currentMeals = meals.slice(indexOfFirstMeal, indexOfLastMeal);
+  const totalPages = Math.ceil(meals.length / mealsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <Container>
-      <h1>{userId ? "Client's Meals" : 'My Meals'}</h1>
-      {meals.map((meal) => {
-        const { totalCalories, totalProteins, totalFats, totalCarbs } = calculateNutrition(meal.products);
-        const groupedProducts = groupProductsByMealType(meal.products);
+        {meals.length === 0 ? (
+          <EmptyMessage>Вы пока не добавляли ничего в дневник питания!</EmptyMessage>
+        ) : (
+          <>
+            {currentMeals.map((meal) => {
+              const { totalCalories, totalProteins, totalFats, totalCarbs } = calculateNutrition(meal.products);
+              const groupedProducts = groupProductsByMealType(meal.products);
 
-        return (
-          <MealCard key={meal.id}>
-            <h3>{new Date(meal.date).toLocaleDateString()}</h3>
-            <h4>Breakfast:</h4>
-            {groupedProducts.breakfast.map((product) => (
-              <ProductCard key={product.id}>
-                <p>Product: {product.name}</p>
-                <p>Category: {product.category}</p>
-                <p>Quantity: {product.quantity} grams/ml</p>
-              </ProductCard>
-            ))}
-            <h4>Lunch:</h4>
-            {groupedProducts.lunch.map((product) => (
-              <ProductCard key={product.id}>
-                <p>Product: {product.name}</p>
-                <p>Category: {product.category}</p>
-                <p>Quantity: {product.quantity} grams/ml</p>
-              </ProductCard>
-            ))}
-            <h4>Dinner:</h4>
-            {groupedProducts.dinner.map((product) => (
-              <ProductCard key={product.id}>
-                <p>Product: {product.name}</p>
-                <p>Category: {product.category}</p>
-                <p>Quantity: {product.quantity} grams/ml</p>
-              </ProductCard>
-            ))}
-            <NutritionInfo>
-              <p>Total Calories: {totalCalories} kcal</p>
-              <p>Total Proteins: {totalProteins} g</p>
-              <p>Total Fats: {totalFats} g</p>
-              <p>Total Carbs: {totalCarbs} g</p>
-            </NutritionInfo>
-            <h4>Комментарии от тренера:</h4>
-            {meal.comments?.map((comment: any) => (
-              <CommentCard key={comment.id}>
-                <p>{comment.comment}</p>
-                <small>{new Date(comment.created_at).toLocaleString()}</small>
-              </CommentCard>
-            ))}
-            {meal.comments.length === 0 && ( !userId ? (
-              <CommentCard>
-                <p>Ваш тренер пока не оставлял комментариев!</p>
-              </CommentCard>
-            ) : (
-              <CommentCard>
-                <p>Вы пока не оставляли комментариев!</p>
-              </CommentCard>
-            ))}
-            {!userId ? <></> : <AddMealComment mealId={meal.id} onCommentAdded={handleCommentAdded} />}
-          </MealCard>
-        );
-      })}
+              return (
+                <ScrollReveal key={meal.id}>
+                  <MealCard>
+                    <MealDate>{new Date(meal.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</MealDate>
+                    
+                    {groupedProducts.breakfast.length > 0 && (
+                      <MealSection>
+                        <SectionTitle>Завтрак</SectionTitle>
+                        {groupedProducts.breakfast.map((product) => (
+                          <ProductCard key={product.id}>
+                            <ProductName>{product.name}</ProductName>
+                            <ProductDetail>Категория: {product.category}</ProductDetail>
+                            <ProductDetail>Количество: {product.quantity} грамм/мл</ProductDetail>
+                          </ProductCard>
+                        ))}
+                      </MealSection>
+                    )}
+                    
+                    {groupedProducts.lunch.length > 0 && (
+                      <MealSection>
+                        <SectionTitle>Обед</SectionTitle>
+                        {groupedProducts.lunch.map((product) => (
+                          <ProductCard key={product.id}>
+                            <ProductName>{product.name}</ProductName>
+                            <ProductDetail>Категория: {product.category}</ProductDetail>
+                            <ProductDetail>Количество: {product.quantity} грамм/мл</ProductDetail>
+                          </ProductCard>
+                        ))}
+                      </MealSection>
+                    )}
+                    
+                    {groupedProducts.dinner.length > 0 && (
+                      <MealSection>
+                        <SectionTitle>Ужин</SectionTitle>
+                        {groupedProducts.dinner.map((product) => (
+                          <ProductCard key={product.id}>
+                            <ProductName>{product.name}</ProductName>
+                            <ProductDetail>Категория: {product.category}</ProductDetail>
+                            <ProductDetail>Количество: {product.quantity} грамм/мл</ProductDetail>
+                          </ProductCard>
+                        ))}
+                      </MealSection>
+                    )}
+                    
+                    <NutritionInfo>
+                      <NutritionTitle>Пищевая ценность</NutritionTitle>
+                      <NutritionItem>
+                        <span>Калории:</span>
+                        <span>{totalCalories} ккал</span>
+                      </NutritionItem>
+                      <NutritionItem>
+                        <span>Белки:</span>
+                        <span>{totalProteins} г</span>
+                      </NutritionItem>
+                      <NutritionItem>
+                        <span>Жиры:</span>
+                        <span>{totalFats} г</span>
+                      </NutritionItem>
+                      <NutritionItem>
+                        <span>Углеводы:</span>
+                        <span>{totalCarbs} г</span>
+                      </NutritionItem>
+                    </NutritionInfo>
+                    
+                    <CommentCard>
+                      <SectionTitle>Комментарии тренера</SectionTitle>
+                      {meal.comments?.length > 0 ? (
+                        meal.comments.map((comment: any) => (
+                          <div key={comment.id}>
+                            <CommentText>{comment.comment}</CommentText>
+                            <CommentDate>
+                              {new Date(comment.created_at).toLocaleString('ru-RU')}
+                            </CommentDate>
+                          </div>
+                        ))
+                      ) : (
+                        <NoComments>
+                          {!userId ? 'Ваш тренер пока не оставлял комментариев' : 'Вы пока не оставляли комментариев'}
+                        </NoComments>
+                      )}
+                    </CommentCard>
+                    
+                    {userId && <AddMealComment mealId={meal.id} onCommentAdded={handleCommentAdded} />}
+                  </MealCard>
+                </ScrollReveal>
+              );
+            })}
+            
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                paginate={paginate}
+              />
+            )}
+          </>
+        )}
     </Container>
   );
 };
