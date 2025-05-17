@@ -26,22 +26,42 @@ class ProgressModel {
     }
 
         // Получаем все тренировки пользователя
+        // static async getUserWorkouts(user_id: number) {
+        //     const result = await pool.query(
+        //         'SELECT * FROM Workouts WHERE client_id = $1 ORDER BY date ASC',
+        //         [user_id]
+        //     );
+        //     return result.rows;
+        // }
         static async getUserWorkouts(user_id: number) {
             const result = await pool.query(
-                'SELECT * FROM Workouts WHERE client_id = $1 ORDER BY date ASC',
+                `SELECT * FROM Workouts WHERE client_id = $1 AND (status = \'assigned\' OR status = \'completed\') ORDER BY date ASC`,
                 [user_id]
             );
             return result.rows;
         }
     
         // Получаем все упражнения пользователя с привязкой к категориям
+        // static async getUserWorkoutExercises(user_id: number) {
+        //     const result = await pool.query(
+        //         `SELECT we.*, w.date, e.category, e.type, e.id as exercise_id, e.name as exercise_name
+        //          FROM WorkoutExercises we
+        //          JOIN Workouts w ON we.workout_id = w.id
+        //          JOIN Exercises e ON we.exercise_id = e.id
+        //          WHERE w.client_id = $1
+        //          ORDER BY w.date ASC`,
+        //         [user_id]
+        //     );
+        //     return result.rows;
+        // }
         static async getUserWorkoutExercises(user_id: number) {
             const result = await pool.query(
                 `SELECT we.*, w.date, e.category, e.type, e.id as exercise_id, e.name as exercise_name
                  FROM WorkoutExercises we
                  JOIN Workouts w ON we.workout_id = w.id
                  JOIN Exercises e ON we.exercise_id = e.id
-                 WHERE w.client_id = $1
+                 WHERE w.client_id = $1 
+                 AND (w.status = 'assigned' OR w.status = 'completed')
                  ORDER BY w.date ASC`,
                 [user_id]
             );

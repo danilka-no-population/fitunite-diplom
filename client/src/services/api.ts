@@ -2,8 +2,8 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 const api = axios.create({
-    // baseURL: 'http://localhost:5000/api',
-    baseURL: 'https://fitunite-diplom.onrender.com/api',
+    baseURL: 'http://localhost:5000/api',
+    // baseURL: 'https://fitunite-diplom.onrender.com/api',
 });
 
 export const getAssignedProgram = () => axios.get('/assigned-programs/my-program');

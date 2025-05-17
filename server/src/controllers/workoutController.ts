@@ -23,7 +23,7 @@ class WorkoutController {
         name,
         description,
         type,
-        status,
+        status: 'assigned',
       });
 
       res.status(201).json(newWorkout);

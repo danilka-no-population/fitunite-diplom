@@ -582,24 +582,24 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                       )
                     )}
                     
-                    <button 
+                    <Button 
                       type="button" 
                       onClick={() => handleRemoveExercise(index)}
-                      style={{ marginTop: '0.5rem', color: 'red' }}
+                      style={{ margin: '0.5rem 0', fontSize: '0.8rem', backgroundColor: '#A80003' }}
                     >
                       Удалить упражнение
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
               
-              <button 
+              <Button 
                 type="button" 
                 onClick={handleAddExercise}
-                style={{ margin: '1rem 0' }}
+                style={{ margin: '1rem 0', fontSize: '0.8rem', backgroundColor: '#05396B' }}
               >
                 Добавить упражнение
-              </button>
+              </Button>
             </div>
 
             <Button type="submit" disabled={loading}>
@@ -675,7 +675,7 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                   </ProgramWorkoutsContainer>
                 </FormGroup>
 
-                {selectedWorkout && (
+                {/* {selectedWorkout && (
                   <>
                     <button 
                       type="button"
@@ -757,13 +757,13 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                                 )
                               )}
                               
-                              <button 
+                              <Button 
                                 type="button" 
                                 onClick={() => handleRemoveExercise(index)}
-                                style={{ marginTop: '0.5rem', color: 'red' }}
+                                style={{ margin: '0.5rem', fontSize: '0.8rem', backgroundColor: '#A80003' }}
                               >
                                 Удалить упражнение
-                              </button>
+                              </Button>
                             </div>
                           );
                         })}
@@ -778,7 +778,7 @@ const AssignWorkoutModal: React.FC<AssignWorkoutModalProps> = ({ clientId, onClo
                       </div>
                     )}
                   </>
-                )}
+                )} */}
 
                 <Button 
                   type="button" 

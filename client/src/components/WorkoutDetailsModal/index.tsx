@@ -91,7 +91,7 @@ const ModalContent = styled.div`
   border-radius: 15px;
   padding: 2rem;
   width: 90%;
-  max-width: 600px;
+  max-width: 650px;
   max-height: 90vh;
   overflow-y: auto;
 `;
@@ -484,18 +484,17 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
                       </>
                     )}
                     
-                    <button 
+                    <Button 
                       onClick={() => handleRemoveExercise(index)}
                       style={{ 
-                        marginTop: '0.5rem', 
-                        color: 'red', 
-                        background: 'none', 
+                        marginTop: '0.5rem',  
                         border: 'none', 
-                        cursor: 'pointer' 
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
                       }}
                     >
                       Удалить упражнение
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -539,19 +538,26 @@ const WorkoutDetailsModal: React.FC<WorkoutDetailsModalProps> = ({
         </ExercisesList>
 
         {workout.status === 'pending' && (
-          <EditButton onClick={() => setEditing(!editing)}>
+          <EditButton onClick={() => setEditing(!editing)} style={{width: '100%'}}>
             {editing ? 'Завершить редактирование' : 'Редактировать тренировку'}
           </EditButton>
         )}
 
+        {/* disabled={editing ? true : false} style={{backgroundColor: editing ? '#666' : '#058E3A'}}
+        disabled={editing ? true : false} style={{backgroundColor: editing ? '#666' : '#A80003'}} */}
+
         {workout.status === 'pending' && (
-          <ButtonGroup>
-            <Button onClick={handleCompleteWorkout}>
-              Я выполнил тренировку
-            </Button>
-            <Button onClick={handleSkipWorkout}>
-              Я не выполнил тренировку
-            </Button>
+          <ButtonGroup style={{display: 'flex', flexWrap: 'wrap'}}>
+            {editing !== true ? (
+              <>
+                <Button onClick={handleCompleteWorkout} style={{minWidth: "200px", flex: "1 1 200px"}}>
+                  Тренировка выполнена
+                </Button>
+                <Button onClick={handleSkipWorkout} style={{minWidth: "200px", flex: "1 1 200px"}}>
+                  Тренировка не выполнена
+                </Button>
+              </>
+            ) : null}
           </ButtonGroup>
         )}
       </ModalContent>
