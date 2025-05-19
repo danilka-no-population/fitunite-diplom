@@ -204,7 +204,7 @@ const MealList: React.FC<{ refresh: boolean; userId?: number }> = ({ refresh, us
   return (
     <Container>
         {meals.length === 0 ? (
-          <EmptyMessage>Вы пока не добавляли ничего в дневник питания!</EmptyMessage>
+          <EmptyMessage>{!userId ? "Вы пока не добавляли ничего в дневник питания!" : "Клиент пока не добавлял ничего в дневник питания!"}</EmptyMessage>
         ) : (
           <>
             {currentMeals.map((meal) => {

@@ -162,7 +162,7 @@ const WorkoutList: React.FC<{ refresh: boolean; clientId?: number }> = ({ refres
   return (
     <Container>
         {workouts.length === 0 ? (
-          <EmptyMessage>Вы пока не добавляли тренировок!</EmptyMessage>
+          <EmptyMessage>{!clientId ? "Вы пока не добавляли тренировок!" : "Клиент пока не добавлял тренировок!"}</EmptyMessage>
         ) : (
           <>
             {currentWorkouts.map((workout) => {

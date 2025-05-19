@@ -11,6 +11,7 @@ export interface User {
     password_hash: string;
     role: 'client' | 'trainer';
     created_at?: Date;
+    trainer_id?: number;
 }
 
 interface UserPayload {
@@ -187,10 +188,37 @@ class UserModel {
       //   );
       // }
 
+      // static async addClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = $1 WHERE id = $2',
+      //     [trainerId, clientId]
+      //   );
+        
+      //   // Создаем чат
+      //   await ChatModel.findOrCreate(trainerId, clientId);
+      //   notifyChatCreated(trainerId, clientId);
+      // }
+      
+      // static async removeClient(trainerId: number, clientId: number): Promise<void> {
+      //   await pool.query(
+      //     'UPDATE Users SET trainer_id = NULL WHERE id = $1 AND trainer_id = $2',
+      //     [clientId, trainerId]
+      //   );
+        
+      //   // Удаляем чат
+      //   await ChatModel.delete(trainerId, clientId);
+      //   notifyChatDeleted(trainerId, clientId);
+      // }
       static async addClient(trainerId: number, clientId: number): Promise<void> {
         await pool.query(
           'UPDATE Users SET trainer_id = $1 WHERE id = $2',
           [trainerId, clientId]
+        );
+        
+        // Удаляем все запросы для этого клиента
+        await pool.query(
+          'DELETE FROM trainer_requests WHERE client_id = $1',
+          [clientId]
         );
         
         // Создаем чат
@@ -204,9 +232,29 @@ class UserModel {
           [clientId, trainerId]
         );
         
+        // Удаляем все запросы для этого клиента от этого тренера
+        await pool.query(
+          'DELETE FROM trainer_requests WHERE trainer_id = $1 AND client_id = $2',
+          [trainerId, clientId]
+        );
+        
         // Удаляем чат
         await ChatModel.delete(trainerId, clientId);
         notifyChatDeleted(trainerId, clientId);
+      }
+
+      static async removeTrainer(clientId: number): Promise<void> {
+        await pool.query(
+          'UPDATE Users SET trainer_id = NULL WHERE id = $1',
+          [clientId]
+        );
+        
+        // Удаляем чат с тренером
+        const client = await this.findById(clientId);
+        if (client?.trainer_id) {
+          await ChatModel.delete(client.trainer_id, clientId);
+          notifyChatDeleted(client.trainer_id, clientId);
+        }
       }
 }
 

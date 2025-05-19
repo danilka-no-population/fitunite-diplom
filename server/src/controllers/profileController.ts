@@ -244,6 +244,22 @@ static async uploadAvatar(req: Request, res: Response) {
       res.status(500).json({ message: 'Server error' });
     }
   }
+
+
+
+
+  static async removeTrainer(req: Request, res: Response) {
+    // @ts-ignore
+    const clientId = req.user.id;
+  
+    try {
+      await UserModel.removeTrainer(clientId);
+      res.status(200).json({ message: 'Тренер успешно удалён' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Ошибка сервера' });
+    }
+  }
 }
 
 export default ProfileController;

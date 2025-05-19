@@ -7,6 +7,7 @@ import MealList from '../components/MealList';
 import ProgressCharts from './Progress';
 import ScrollReveal from '../components/ScrollReveal';
 import AssignWorkoutModal from '../components/AssignWorkoutModal';
+import TrainerRequestModal from '../components/TrainerRequestModal';
 
 interface AvatarProps {
   src: string;
@@ -353,6 +354,131 @@ const AddButton = styled.button`
   }
 `;
 
+const ActionButton = styled.button<{ variant: 'add' | 'remove' | 'disabled' | 'pending' }>`
+  padding: 10px 20px;
+  background-color: ${props => 
+    props.variant === 'add' ? '#058E3A' : 
+    props.variant === 'remove' ? '#A80003' :
+    props.variant === 'pending' ? '#666' : '#ccc'};
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 15px;
+  
+  &:hover {
+    background-color: ${props => 
+      props.disabled ? '' : 
+      props.variant === 'add' ? '#046b2d' : 
+      props.variant === 'remove' ? '#8a0002' : '#666'};
+    transform: ${props => props.disabled ? '' : 'translateY(-2px)'};
+  }
+  
+  &:active {
+    transform: ${props => props.disabled ? '' : 'translateY(0)'};
+  }
+`;
+
+const DeleteModalOverlay = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: ${props => props.$isOpen ? 'flex' : 'none'};
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+const DeleteModalContent = styled.div`
+  background-color: white;
+  border-radius: 15px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: slideUp 0.3s ease;
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+`;
+
+const DeleteModalClose = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  line-height: 1;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+const DeleteModalTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #05396B;
+`;
+
+const DeleteModalText = styled.p`
+  margin-bottom: 2rem;
+  color: #333;
+  line-height: 1.5;
+`;
+
+const DeleteModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+`;
+
+const DeleteButton = styled.button`
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 1rem;
+
+  &.secondary {
+    background-color: #F5F5F5;
+    color: #333;
+
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  &.danger {
+    background-color: #A80003;
+    color: white;
+
+    &:hover {
+      background-color: #8a0002;
+    }
+  }
+`;
+
 const ClientProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'profile' | 'workouts' | 'progress' | 'meals'>('profile');
@@ -361,6 +487,126 @@ const ClientProfile: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [refresh, setRefresh] = useState(false)
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+
+  // const fetchClientData = async () => {
+  //   try {
+  //     const [clientResponse, requestsResponse] = await Promise.all([
+  //       api.get(`/profile/${id}`),
+  //       api.get('/trainer-requests/trainer')
+  //     ]);
+
+  //     setClient(clientResponse.data);
+  //     setIsClient(clientResponse.data.isClient);
+      
+  //     // Проверяем, есть ли pending запрос для этого клиента
+  //     const pendingRequest = requestsResponse.data.find(
+  //       (req: any) => req.client_id === Number(id) && req.status === 'pending'
+  //     );
+  //     setHasPendingRequest(!!pendingRequest);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+  const fetchClientData = async () => {
+    try {
+      const [clientResponse, requestsResponse, myClientsResponse] = await Promise.all([
+        api.get(`/profile/${id}`),
+        api.get('/trainer-requests/trainer'),
+        api.get('/profile/my-clients')
+      ]);
+  
+      const clientData = clientResponse.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isMyClient = myClientsResponse.data.some((c: any) => c.id === Number(id));
+      
+      setClient({
+        ...clientData,
+        currentTrainerId: clientResponse.headers['x-current-user-id'] // Добавляем ID текущего пользователя
+      });
+      setIsClient(isMyClient);
+      
+      // Проверяем, есть ли pending запрос для этого клиента
+      const pendingRequest = requestsResponse.data.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (req: any) => req.client_id === Number(id) && req.status === 'pending'
+      );
+      setHasPendingRequest(!!pendingRequest);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAddClick = () => {
+    setIsRequestModalOpen(true);
+  };
+
+  const handleSendRequest = async () => {
+    try {
+      await api.post('/trainer-requests/send', { clientId: Number(id) });
+      setHasPendingRequest(true);
+      setIsRequestModalOpen(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleRemoveClick = () => {
+    setIsRemoveModalOpen(true);
+  };
+
+  const confirmRemoveClient = async () => {
+    try {
+      await api.post('/profile/remove-client', { clientId: Number(id) });
+      setIsClient(false);
+      setIsRemoveModalOpen(false);
+      // Обновляем данные клиента
+      await fetchClientData();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientData();
+  }, [id, refresh]);
+
+  if (!client) {
+    return <Container>Loading...</Container>;
+  }
+
+  const renderActionButton = () => {
+    // Если клиент уже имеет тренера (и это не текущий пользователь)
+    if (client.trainer_id && client.trainer_id !== client.currentTrainerId) {
+      return null; // Не показываем кнопку вообще
+    }
+  
+    // Если клиент уже в списке текущего тренера
+    if (isClient) {
+      return (
+        <ActionButton 
+          variant="remove" 
+          onClick={handleRemoveClick}
+        >
+          Удалить из клиентов
+        </ActionButton>
+      );
+    }
+  
+    // Если клиент без тренера и нет pending запроса
+    return (
+      <ActionButton 
+        variant="add" 
+        onClick={handleAddClick}
+        disabled={hasPendingRequest}
+      >
+        {hasPendingRequest ? 'Запрос отправлен' : 'Добавить клиента'}
+      </ActionButton>
+    );
+  };
 
   const fetchClient = async () => {
     try {
@@ -393,10 +639,10 @@ const ClientProfile: React.FC = () => {
 
 
 
-  useEffect(() => {
-    fetchClient();
-    console.log(client)
-  }, [id]);
+  // useEffect(() => {
+  //   fetchClient();
+  //   console.log(client)
+  // }, [id]);
 
   if (!client) {
     return <Container>Loading...</Container>;
@@ -453,15 +699,16 @@ const ClientProfile: React.FC = () => {
                     <Value>{client.email}</Value>
                   </Field>
                   <Field>
-                    <Label>Phone number</Label>
+                    <Label>Номер телефона</Label>
                     <Value>{client.phone_number || 'Не указан'}</Value>
                   </Field>
                 </FieldRow>
-                {client.isClient ? (
-                <RemoveButton onClick={() => handleRemoveClient(client.id)}>Remove from my clients</RemoveButton>
+                {/* {client.isClient ? (
+                <RemoveButton onClick={() => handleRemoveClient(client.id)}>Удалить из моих клиентов</RemoveButton>
                 ) : (
-                    <AddButton onClick={() => handleAddClient(client.id)}>Add Client</AddButton>
-                )}
+                    <AddButton onClick={() => handleAddClient(client.id)}>Добавить клиента</AddButton>
+                )} */}
+                {renderActionButton()}
               </ProfileSection>
             </ScrollReveal>
           </div>
@@ -489,6 +736,33 @@ const ClientProfile: React.FC = () => {
         {isClient && activeTab === 'progress' && <ProgressCharts userId={Number(id)}/>}
         {isClient && activeTab === 'meals' && <MealList refresh={false} userId={Number(id)} />}
       </Content>
+
+
+      <TrainerRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onConfirm={handleSendRequest}
+        username={client.username}
+      />
+
+      <DeleteModalOverlay $isOpen={isRemoveModalOpen}>
+        <DeleteModalContent>
+          <DeleteModalClose onClick={() => setIsRemoveModalOpen(false)}>×</DeleteModalClose>
+          <DeleteModalTitle>Подтверждение удаления</DeleteModalTitle>
+          <DeleteModalText>
+            Вы действительно хотите удалить клиента {client.username} из своего списка?
+          </DeleteModalText>
+          <DeleteModalActions>
+            <DeleteButton className="secondary" onClick={() => setIsRemoveModalOpen(false)}>
+              Отмена
+            </DeleteButton>
+            <DeleteButton className="danger" onClick={confirmRemoveClient}>
+              Удалить
+            </DeleteButton>
+          </DeleteModalActions>
+        </DeleteModalContent>
+      </DeleteModalOverlay>
+
     </Container>
   );
 };

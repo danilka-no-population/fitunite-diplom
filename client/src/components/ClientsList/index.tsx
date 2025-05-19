@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import api from '../../services/api';
 import { Link } from 'react-router-dom';
 import ScrollReveal from '../ScrollReveal';
+import TrainerRequestModal from '../TrainerRequestModal';
 
 const Container = styled.div`
   max-width: 800px;
@@ -147,25 +148,31 @@ const ClientUsername = styled.p`
   font-size: 0.9rem;
 `;
 
-const ActionButton = styled.button<{ variant: 'add' | 'remove' }>`
+const ActionButton = styled.button<{ variant: 'add' | 'remove' | 'disabled' | 'pending' }>`
   padding: 10px 20px;
-  background-color: ${props => props.variant === 'add' ? '#058E3A' : '#A80003'};
+  background-color: ${props => 
+    props.variant === 'add' ? '#058E3A' : 
+    props.variant === 'remove' ? '#A80003' :
+    props.variant === 'pending' ? '#666' : '#ccc'};
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.3s ease;
   min-width: 180px;
   
   &:hover {
-    background-color: ${props => props.variant === 'add' ? '#046b2d' : '#8a0002'};
-    transform: translateY(-2px);
+    background-color: ${props => 
+      props.disabled ? '' : 
+      props.variant === 'add' ? '#046b2d' : 
+      props.variant === 'remove' ? '#8a0002' : '#666'};
+    transform: ${props => props.disabled ? '' : 'translateY(-2px)'};
   }
   
   &:active {
-    transform: translateY(0);
+    transform: ${props => props.disabled ? '' : 'translateY(0)'};
   }
 
   @media (max-width: 550px) {
@@ -197,6 +204,102 @@ const ClientCount = styled.div`
   }
 `;
 
+const DeleteModalOverlay = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: ${props => props.$isOpen ? 'flex' : 'none'};
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+const DeleteModalContent = styled.div`
+  background-color: white;
+  border-radius: 15px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: slideUp 0.3s ease;
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+`;
+
+const DeleteModalClose = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  line-height: 1;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+const DeleteModalTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #05396B;
+`;
+
+const DeleteModalText = styled.p`
+  margin-bottom: 2rem;
+  color: #333;
+  line-height: 1.5;
+`;
+
+const DeleteModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+`;
+
+const DeleteButton = styled.button`
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 1rem;
+
+  &.secondary {
+    background-color: #F5F5F5;
+    color: #333;
+
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  &.danger {
+    background-color: #A80003;
+    color: white;
+
+    &:hover {
+      background-color: #8a0002;
+    }
+  }
+`;
+
 const ClientsList: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [myClients, setMyClients] = useState<Set<number>>(new Set());
@@ -205,39 +308,70 @@ const ClientsList: React.FC = () => {
   const [myClientsSearch, setMyClientsSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
+
+
+  // Добавляем новые состояния
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<any>(null);
+  const [sentRequests, setSentRequests] = useState<Set<number>>(new Set());
+
+  // Добавляем обработчик для кнопки добавления клиента
+  const handleAddClick = (client: any) => {
+    if (client.trainer_id) {
+      return; // У клиента уже есть тренер
+    }
+    setSelectedClient(client);
+    setIsRequestModalOpen(true);
+  };
+
   useEffect(() => {
+    // Обновляем функцию fetchClients
     const fetchClients = async () => {
       setLoading(true);
       try {
-        if (activeTab === 'my-clients') {
-          const response = await api.get('/profile/my-clients');
-          const updatedClients = response.data.map((client: any) => ({
-            ...client,
-            isClient: true,
-          }));
-          setClients(updatedClients);
-          setMyClients(new Set(response.data.map((client: any) => client.id)));
-        } else {
-          const [allClientsResponse, myClientsResponse] = await Promise.all([
-            api.get('/profile/all-clients'),
-            api.get('/profile/my-clients')
-          ]);
-
-          const myClientsSet = new Set(myClientsResponse.data.map((client: any) => client.id));
-          const updatedClients = allClientsResponse.data.map((client: any) => ({
-            ...client,
-            isClient: myClientsSet.has(client.id),
-          }));
-
-          setClients(updatedClients);
-          setMyClients(myClientsSet);
-        }
+          if (activeTab === 'my-clients') {
+              const response = await api.get('/profile/my-clients');
+              const updatedClients = response.data.map((client: any) => ({
+                  ...client,
+                  isClient: true,
+                  hasPendingRequest: false,
+                  trainer_id: response.data.trainer_id // Добавляем trainer_id
+              }));
+              setClients(updatedClients);
+              setMyClients(new Set(response.data.map((client: any) => client.id)));
+          } else {
+              const [allClientsResponse, myClientsResponse, requestsResponse] = await Promise.all([
+                  api.get('/profile/all-clients'),
+                  api.get('/profile/my-clients'),
+                  api.get('/trainer-requests/trainer')
+              ]);
+  
+              const myClientsSet = new Set(myClientsResponse.data.map((client: any) => client.id));
+              const sentRequestsSet = new Set(
+                  requestsResponse.data
+                      .filter((req: any) => req.status === 'pending')
+                      .map((req: any) => req.client_id)
+              );
+  
+              const updatedClients = allClientsResponse.data.map((client: any) => ({
+                  ...client,
+                  isClient: myClientsSet.has(client.id),
+                  hasPendingRequest: sentRequestsSet.has(client.id),
+                  trainer_id: client.trainer_id || null // Явно указываем trainer_id
+              }));
+  
+              setClients(updatedClients);
+              setMyClients(myClientsSet);
+              setSentRequests(sentRequestsSet);
+          }
       } catch (error) {
-        console.error(error);
+          console.error(error);
       } finally {
-        setLoading(false);
+          setLoading(false);
       }
-    };
+  };
 
     fetchClients();
     setMyClientsSearch('')
@@ -274,6 +408,58 @@ const ClientsList: React.FC = () => {
         username: client.username || '', // Убедиться, что username всегда существует
       }));
       setClients(updatedClients);
+
+
+
+          // Обновляем функцию fetchClients
+          const fetchClients = async () => {
+            setLoading(true);
+            try {
+                if (activeTab === 'my-clients') {
+                    const response = await api.get('/profile/my-clients');
+                    const updatedClients = response.data.map((client: any) => ({
+                        ...client,
+                        isClient: true,
+                        hasPendingRequest: false,
+                        trainer_id: response.data.trainer_id // Добавляем trainer_id
+                    }));
+                    setClients(updatedClients);
+                    setMyClients(new Set(response.data.map((client: any) => client.id)));
+                } else {
+                    const [allClientsResponse, myClientsResponse, requestsResponse] = await Promise.all([
+                        api.get('/profile/all-clients'),
+                        api.get('/profile/my-clients'),
+                        api.get('/trainer-requests/trainer')
+                    ]);
+        
+                    const myClientsSet = new Set(myClientsResponse.data.map((client: any) => client.id));
+                    const sentRequestsSet = new Set(
+                        requestsResponse.data
+                            .filter((req: any) => req.status === 'pending')
+                            .map((req: any) => req.client_id)
+                    );
+        
+                    const updatedClients = allClientsResponse.data.map((client: any) => ({
+                        ...client,
+                        isClient: myClientsSet.has(client.id),
+                        hasPendingRequest: sentRequestsSet.has(client.id),
+                        trainer_id: client.trainer_id || null // Явно указываем trainer_id
+                    }));
+        
+                    setClients(updatedClients);
+                    setMyClients(myClientsSet);
+                    setSentRequests(sentRequestsSet);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+    fetchClients();
+
+
     } catch (error) {
       console.error(error);
     }
@@ -281,37 +467,76 @@ const ClientsList: React.FC = () => {
 
   const handleAddClient = async (clientId: number) => {
     try {
-      await api.post('/profile/add-client', { clientId });
-      setMyClients((prev) => new Set(prev).add(clientId));
+      await api.post('/trainer-requests/send', { clientId });
       setClients((prev) =>
         prev.map((client) =>
-          client.id === clientId ? { ...client, isClient: true } : client
+          client.id === clientId ? { ...client, hasPendingRequest: true } : client
         )
       );
+      setSentRequests((prev) => new Set(prev).add(clientId));
     } catch (error) {
       console.error(error);
     }
   };
+  
+  const handleRemoveClick = (client: any) => {
+    setClientToDelete(client);
+    setIsDeleteModalOpen(true);
+  };
+  
+  // const confirmRemoveClient = async () => {
+  //   if (!clientToDelete) return;
+    
+  //   try {
+  //     await api.post('/profile/remove-client', { clientId: clientToDelete.id });
+      
+  //     setClients(prevClients => 
+  //       prevClients.map(client => 
+  //         client.id === clientToDelete.id 
+  //           ? { ...client, isClient: false, hasPendingRequest: false } 
+  //           : client
+  //       )
+  //     );
+      
+  //     setMyClients(prev => {
+  //       const updated = new Set(prev);
+  //       updated.delete(clientToDelete.id);
+  //       return updated;
+  //     });
+      
+  //     setIsDeleteModalOpen(false);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
 
-  const handleRemoveClient = async (clientId: number) => {
+  const confirmRemoveClient = async () => {
+    if (!clientToDelete) return;
+    
     try {
-      await api.post('/profile/remove-client', { clientId });
-  
-      setClients((prevClients) => {
-        if (activeTab === 'my-clients') {
-          return prevClients.filter((client) => client.id !== clientId);
-        } else {
-          return prevClients.map((client) =>
-            client.id === clientId ? { ...client, isClient: false } : client
-          );
-        }
+      await api.post('/profile/remove-client', { clientId: clientToDelete.id });
+      
+      // Для всех случаев обновляем состояние клиента
+      setClients(prevClients => 
+        prevClients.map(client => 
+          client.id === clientToDelete.id 
+            ? { 
+                ...client, 
+                isClient: false, 
+                hasPendingRequest: false,
+                trainer_id: null // Явно сбрасываем trainer_id
+              } 
+            : client
+        )
+      );
+      
+      setMyClients(prev => {
+        const updated = new Set(prev);
+        updated.delete(clientToDelete.id);
+        return updated;
       });
-  
-      setMyClients((prev) => {
-        const updatedClients = new Set(prev);
-        updatedClients.delete(clientId);
-        return updatedClients;
-      });
+      
+      setIsDeleteModalOpen(false);
     } catch (error) {
       console.error(error);
     }
@@ -421,7 +646,7 @@ const ClientsList: React.FC = () => {
                 <ClientUsername>{client.username ? '@' + client.username : ''}</ClientUsername>
               </ClientInfo>
             </ClientLink>
-            {client.isClient ? (
+            {/* {client.isClient ? (
               <ActionButton 
                 variant="remove" 
                 onClick={() => handleRemoveClient(client.id)}
@@ -435,11 +660,60 @@ const ClientsList: React.FC = () => {
               >
                 Добавить клиента
               </ActionButton>
+            )} */}
+            {client.isClient ? (
+                <ActionButton 
+                    variant="remove" 
+                    onClick={() => handleRemoveClick(client)}
+                >
+                    Удалить из клиентов
+                </ActionButton>
+            ) : (
+                <ActionButton 
+                    variant={client.trainer_id ? 'disabled' : client.hasPendingRequest ? 'pending' : 'add'} 
+                    onClick={() => client.trainer_id ? null : handleAddClick(client)}
+                    disabled={!!client.trainer_id || client.hasPendingRequest}
+                >
+                    {client.trainer_id 
+                        ? 'Есть тренер' 
+                        : client.hasPendingRequest 
+                            ? 'Запрос отправлен' 
+                            : 'Добавить клиента'}
+                </ActionButton>
             )}
           </ClientCard>
           </ScrollReveal>
         ))
       )}
+
+
+
+      <TrainerRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onConfirm={() => {
+          handleAddClient(selectedClient.id);
+          setIsRequestModalOpen(false);
+        }}
+        username={selectedClient?.username}
+      />
+      <DeleteModalOverlay $isOpen={isDeleteModalOpen}>
+        <DeleteModalContent>
+          <DeleteModalClose onClick={() => setIsDeleteModalOpen(false)}>×</DeleteModalClose>
+          <DeleteModalTitle>Подтверждение удаления</DeleteModalTitle>
+          <DeleteModalText>
+            Вы действительно хотите удалить клиента {clientToDelete?.username} из своего списка?
+          </DeleteModalText>
+          <DeleteModalActions>
+            <DeleteButton className="secondary" onClick={() => setIsDeleteModalOpen(false)}>
+              Отмена
+            </DeleteButton>
+            <DeleteButton className="danger" onClick={confirmRemoveClient}>
+              Удалить
+            </DeleteButton>
+          </DeleteModalActions>
+        </DeleteModalContent>
+      </DeleteModalOverlay>
     </Container>
   );
 };

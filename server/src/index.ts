@@ -19,6 +19,7 @@ import mealCommentRoutes from './routes/mealCommentRoutes';
 import { setupWSServer } from './websocket';
 import chatRoutes from './routes/chatRoutes';
 import assignedProgramRoutes from './routes/assignedProgramRoutes';
+import trainerRequestRoutes from './routes/trainerRequestRoutes'
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.use('/api/workout-comments', workoutCommentRoutes);
 app.use('/api/meal-comments', mealCommentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/assigned-programs', assignedProgramRoutes);
+app.use('/api/trainer-requests', trainerRequestRoutes)
 
 
 // Добавляем статическую отдачу файлов из папки uploads

@@ -666,7 +666,7 @@ export const ProgressCharts: React.FC<{ userId?: number }> = ({ userId }) => {
               </>
             ) : (
               <NoDataMessage style={{color: '#05396B'}}>
-                Вы не выполняли упражнения в категории "{category}" за выбранный период.
+                {!userId ? `Вы не выполняли упражнения в категории "${category}" за выбранный период.` : `Клиент не выполнял упражнения в категории "${category}" за выбранный период.`}
               </NoDataMessage>
             )}
           </ChartContainer>

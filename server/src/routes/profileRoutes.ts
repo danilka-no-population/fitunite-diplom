@@ -43,5 +43,6 @@ router.get('/all-clients', authMiddleware, ProfileController.getAllClients);
 router.post('/remove-client', authMiddleware, ProfileController.removeClient);
 //@ts-ignore
 router.get('/:id', authMiddleware, ProfileController.getClientProfile);
+router.post('/remove-trainer', ProfileController.removeTrainer);
 
 export default router;

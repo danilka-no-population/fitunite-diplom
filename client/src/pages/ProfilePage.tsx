@@ -5,6 +5,11 @@ import api from '../services/api';
 import ScrollReveal from '../components/ScrollReveal';
 import { Link } from 'react-router-dom';
 
+// Добавляем новые импорты
+import MyTrainerSection from '../components/MyTrainerSection';
+import TrainerRequestsSection from '../components/TrainerRequestSection';
+import TrainerRequestModal from '../components/TrainerRequestModal';
+
 // Интерфейсы и типы
 interface AvatarProps {
   src: string;
@@ -560,6 +565,19 @@ const ProfilePage: React.FC = () => {
     currentPage * metricsPerPage
   );
 
+
+
+  // Добавляем новые состояния в компонент ProfilePage
+  const [trainerRequests, setTrainerRequests] = useState<any[]>([]);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [trainer, setTrainer] = useState<any>(null);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+
+
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -613,6 +631,33 @@ const ProfilePage: React.FC = () => {
   
     if (user?.role === 'client') {
       fetchAssignedProgram();
+    }
+  }, [user]);
+
+  // Добавляем новые эффекты для загрузки данных
+  useEffect(() => {
+    if (user?.role === 'client' && user.trainer_id) {
+      const fetchTrainer = async () => {
+        try {
+          const response = await api.get(`/profile/${user.trainer_id}`);
+          setTrainer(response.data);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      fetchTrainer();
+    }
+
+    if (user?.role === 'client') {
+      const fetchRequests = async () => {
+        try {
+          const response = await api.get('/trainer-requests/pending');
+          setTrainerRequests(response.data);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      fetchRequests();
     }
   }, [user]);
 
@@ -816,6 +861,60 @@ const ProfilePage: React.FC = () => {
     if (!phone) return 'Номер телефона не указан';
     return phone; // Просто возвращаем как есть
   };
+
+
+
+
+  // Добавляем обработчики для запросов
+const handleSendRequest = async (clientId: number) => {
+  try {
+    await api.post('/trainer-requests/send', { clientId });
+    setIsRequestModalOpen(false);
+    // Можно добавить уведомление об успешной отправке
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleAcceptRequest = async (requestId: number) => {
+  try {
+    await api.post(`/trainer-requests/${requestId}/accept`);
+    // Обновляем данные пользователя и запросов
+    const response = await api.get('/profile');
+    setUser(response.data);
+    const requestsResponse = await api.get('/trainer-requests/pending');
+    setTrainerRequests(requestsResponse.data);
+    // Можно добавить уведомление об успешном принятии
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleRejectRequest = async (requestId: number) => {
+  try {
+    await api.post(`/trainer-requests/${requestId}/reject`);
+    // Обновляем список запросов
+    const response = await api.get('/trainer-requests/pending');
+    setTrainerRequests(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleRemoveTrainer = async () => {
+  try {
+    await api.post('/profile/remove-trainer');
+    const response = await api.get('/profile');
+    setUser(response.data);
+    setTrainer(null);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+
+
+
 
   if (!user) {
     return <ProfileContainer>Загрузка...</ProfileContainer>;
@@ -1043,7 +1142,7 @@ const ProfilePage: React.FC = () => {
               {user.role === 'client' && (
                 <Field>
                   <Label>Тренер</Label>
-                  <Value>{trainers.find((t) => t.id === user.trainer_id)?.fullname || trainers.find((t) => t.id === user.trainer_id)?.username || 'Не выбран'}</Value>
+                  <Value>{trainers.find((t) => t.id === user.trainer_id)?.fullname || trainers.find((t) => t.id === user.trainer_id)?.username || 'У вас пока нет тренера!'}</Value>
                 </Field>
               )}
               
@@ -1250,6 +1349,32 @@ const ProfilePage: React.FC = () => {
           </Field>
         </FieldRow>
       </ProfileSection> */}
+      {user?.role === 'client' && trainer && (
+        <MyTrainerSection 
+          trainer={trainer} 
+          onRemove={handleRemoveTrainer}
+        />
+      )}
+      {user?.role === 'client' && trainerRequests.length > 0 && (
+        <TrainerRequestsSection
+          requests={trainerRequests}
+          type="incoming"
+          onAccept={handleAcceptRequest}
+          onReject={handleRejectRequest}
+        />
+      )}
+      <TrainerRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onConfirm={() => handleSendRequest(selectedClient.id)}
+        username={selectedClient?.username}
+      />
+
+
+
+
+      
+      
     </ProfileContainer>
   );
 };
